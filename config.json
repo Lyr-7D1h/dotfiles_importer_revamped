@@ -1,0 +1,5 @@
+{
+  "repository": "https://github.com/Lyr-7D1h/dotfiles.git",
+  "home": "/home/test",
+  "ignore_files": ["README.md", "screenshot.png", ".gitignore", ".git"] 
+}

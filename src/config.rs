@@ -21,13 +21,14 @@ struct UnserializedConfig {
 
 impl Config {
     pub fn from_settings() -> Result<Config, Box<dyn Error>> {
-        let file = File::open("./settings.json")?;
+        let file = File::open("./config.json")?;
 
         let reader = BufReader::new(file);
 
         let uconfig: UnserializedConfig = serde_json::from_reader(reader)?;
 
         let home = PathBuf::from(uconfig.home);
+        home.metadata()?;
         let repository = get_repository(uconfig.repository, &home)?;
         let ignore_files: Vec<PathBuf> = uconfig
             .ignore_files
