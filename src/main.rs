@@ -1,29 +1,18 @@
+use log::error;
 use std::process;
 
-use dotfiles_importer::{backup, link, restore, Config};
+use dotfiles_importer::Importer;
 
 fn main() {
-    let config = Config::from_settings().unwrap_or_else(|e| {
-        eprintln!("Error from reading settings: {}", e);
+    env_logger::init();
+
+    let importer = Importer::new().unwrap_or_else(|e| {
+        error!("Could not create importer: {}", e);
         process::exit(1)
     });
 
-    setup(&config);
-}
-
-fn setup(config: &Config) {
-    println!("Config loaded");
-    backup(&config).unwrap_or_else(|e| {
-        eprintln!("Could not backup files: {}", e);
+    importer.setup().unwrap_or_else(|e| {
+        error!("Setup failed: {}", e);
         process::exit(1)
-    });
-
-    link(&config).unwrap_or_else(|e| {
-        eprintln!("Could not link repository files: {}", e);
-        eprintln!("Restoring from backup");
-        restore(&config).unwrap_or_else(|e| {
-            eprintln!("Could not restore from backup: {}", e);
-        });
-        process::exit(1)
-    });
+    })
 }

@@ -3,3 +3,4 @@ Cargo.lock
 /backup
 /repository
 /settings.json
+/.state.json

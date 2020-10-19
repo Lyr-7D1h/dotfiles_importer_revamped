@@ -1,3 +1,4 @@
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 // use serde_json::Result;
 use git2::{Cred, RemoteCallbacks, Repository};
@@ -29,13 +30,17 @@ impl Config {
 
         let home = PathBuf::from(uconfig.home);
         home.metadata()?;
+
+        info!("Fetched config");
+
         let repository = get_repository(uconfig.repository, &home)?;
         let ignore_files: Vec<PathBuf> = uconfig
             .ignore_files
             .iter()
             .map(|file| repository.workdir().unwrap().join(PathBuf::from(file)))
             .collect();
-        println!("Fetched repository");
+
+        info!("Fetched repository");
 
         let config = Config {
             repository,
@@ -52,7 +57,7 @@ fn get_repository(url: String, home: &Path) -> Result<Repository, Box<dyn Error>
     match Repository::open(&path) {
         Ok(r) => Ok(r),
         Err(_) => {
-            println!("Repository path does not exist cloning...");
+            debug!("Repository path does not exist cloning...");
             let mut callbacks = RemoteCallbacks::new();
 
             callbacks.credentials(|_url, username_from_url, _allowed_types| {
