@@ -4,3 +4,4 @@ Cargo.lock
 /repository
 /settings.json
 /.state.json
+/config.json

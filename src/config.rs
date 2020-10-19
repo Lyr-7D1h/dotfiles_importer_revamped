@@ -1,11 +1,10 @@
+use git2::{Cred, RemoteCallbacks, Repository};
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
-// use serde_json::Result;
-use git2::{Cred, RemoteCallbacks, Repository};
-use std::error::Error;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
+use std::{env, error::Error};
 
 pub struct Config {
     pub repository: Repository,
@@ -22,7 +21,23 @@ struct UnserializedConfig {
 
 impl Config {
     pub fn from_settings() -> Result<Config, Box<dyn Error>> {
-        let file = File::open("./config.json")?;
+        let file = match File::open("config.json") {
+            Ok(file) => file,
+            Err(_) => {
+                let default_config = UnserializedConfig {
+                    repository: String::new(),
+                    home: env::var("HOME")?,
+                    ignore_files: vec![
+                        "README.md".to_string(),
+                        ".gitignore".to_string(),
+                        ".git".to_string(),
+                    ],
+                };
+                let data = serde_json::to_string(&default_config)?;
+                fs::write("config.json", data)?;
+                File::open("config.json")?
+            }
+        };
 
         let reader = BufReader::new(file);
 

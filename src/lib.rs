@@ -51,7 +51,9 @@ impl Importer {
             })?;
             self.state.initialized = true;
             self.state.save()?;
+            return Ok(());
         }
+        info!("Already setup");
 
         Ok(())
     }
