@@ -8,6 +8,7 @@ use std::{fs::File, io::BufReader};
 pub struct State {
     pub initialized: bool,
     pub repository: String,
+    pub changed_files: Vec<String>,
 }
 
 impl State {
@@ -24,6 +25,7 @@ impl State {
                 let default_state = State {
                     initialized: false,
                     repository: String::new(),
+                    changed_files: vec![],
                 };
                 default_state.save()?;
                 return Ok(default_state);

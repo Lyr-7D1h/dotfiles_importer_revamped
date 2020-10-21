@@ -1,13 +1,11 @@
 use log::{debug, info};
 
-use crate::Importer;
+use crate::{util::recurse, Importer};
 use std::fs;
 use std::io;
 use std::io::Error;
 use std::os::unix::fs::symlink;
-use std::path::{Path, PathBuf};
-
-use crate::Config;
+use std::path::Path;
 
 impl Importer {
     pub fn backup(&self) -> Result<(), Error> {
@@ -26,7 +24,7 @@ impl Importer {
 
             Ok(())
         };
-        recurse_with_config(&self.config, backup)?;
+        self.recurse_with_config(backup)?;
         info!("Backed up {} files", c);
         Ok(())
     }
@@ -48,7 +46,7 @@ impl Importer {
             symlink(from, to)
         };
 
-        recurse_with_config(&self.config, &link)
+        self.recurse_with_config(&link)
     }
     pub fn restore(&self) -> Result<(), Error> {
         let op = |_from: &Path, to: &Path, _cur: &Path| {
@@ -81,51 +79,16 @@ impl Importer {
             Ok(())
         };
 
-        recurse_with_config(&self.config, &op)
-    }
-}
-
-fn recurse_with_config<F>(config: &Config, mut op: F) -> Result<(), Error>
-where
-    F: FnMut(&Path, &Path, &Path) -> io::Result<()>,
-{
-    let src = config.repository.workdir().unwrap();
-    let dest = &config.home;
-
-    recurse(src, dest, Path::new(""), &config.ignore_files, &mut op)
-}
-
-fn recurse<F>(
-    src: &Path,
-    dest: &Path,
-    cur: &Path,
-    ignore_files: &Vec<PathBuf>,
-    op: &mut F,
-) -> io::Result<()>
-where
-    F: FnMut(&Path, &Path, &Path) -> io::Result<()>,
-{
-    let cur_dir = src.join(cur);
-
-    if cur_dir.is_dir() {
-        for entry in fs::read_dir(cur_dir)? {
-            let entry = entry?;
-            let path = entry.path();
-
-            if ignore_files.contains(&path.to_path_buf()) {
-                debug!("Ignoring {:?}", path);
-                continue;
-            }
-
-            if path.is_dir() {
-                let cur = path.strip_prefix(src).unwrap();
-                recurse(src, dest, &cur, ignore_files, op)?;
-            } else if path.is_file() {
-                // println!("{:?} {:?}", dest, cur);
-                op(&path, &dest.join(cur).join(path.file_name().unwrap()), cur)?;
-            }
-        }
+        self.recurse_with_config(&op)
     }
 
-    Ok(())
+    fn recurse_with_config<F>(&self, mut op: F) -> Result<(), Error>
+    where
+        F: FnMut(&Path, &Path, &Path) -> io::Result<()>,
+    {
+        let src = self.config.repository.workdir().unwrap();
+        let dest = &self.config.home;
+
+        recurse(src, dest, Path::new(""), &self.config.ignore_files, &mut op)
+    }
 }
