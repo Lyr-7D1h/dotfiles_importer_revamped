@@ -1,6 +1,6 @@
 use log::{debug, info};
 
-use crate::{util::recurse, Importer};
+use crate::{util::find_equal_files, Importer};
 use std::fs;
 use std::io;
 use std::io::Error;
@@ -61,7 +61,7 @@ impl Importer {
                     Ok(())
                 };
 
-                return recurse(
+                return find_equal_files(
                     Path::new("backup"),
                     &self.config.home,
                     Path::new(""),
@@ -89,6 +89,6 @@ impl Importer {
         let src = self.config.repository.workdir().unwrap();
         let dest = &self.config.home;
 
-        recurse(src, dest, Path::new(""), &self.config.ignore_files, &mut op)
+        find_equal_files(src, dest, Path::new(""), &self.config.ignore_files, &mut op)
     }
 }

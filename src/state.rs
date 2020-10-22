@@ -9,6 +9,8 @@ pub struct State {
     pub initialized: bool,
     pub repository: String,
     pub changed_files: Vec<String>,
+    pub mapped_files: Vec<String>,
+    pub suggested_files: Vec<String>,
 }
 
 impl State {
@@ -26,6 +28,8 @@ impl State {
                     initialized: false,
                     repository: String::new(),
                     changed_files: vec![],
+                    mapped_files: vec![],
+                    suggested_files: vec![],
                 };
                 default_state.save()?;
                 return Ok(default_state);

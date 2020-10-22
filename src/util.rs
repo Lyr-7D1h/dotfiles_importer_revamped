@@ -5,7 +5,7 @@ use std::{
 
 use log::debug;
 
-pub fn recurse<F>(
+pub fn find_equal_files<F>(
     src: &Path,
     dest: &Path,
     cur: &Path,
@@ -29,9 +29,28 @@ where
 
             if path.is_dir() {
                 let cur = path.strip_prefix(src).unwrap();
-                recurse(src, dest, &cur, ignore_files, op)?;
+                find_equal_files(src, dest, &cur, ignore_files, op)?;
             } else if path.is_file() {
                 op(&path, &dest.join(cur).join(path.file_name().unwrap()), cur)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Find all files without following symlinks
+pub fn find_all_files_symlink<F>(path: &Path, op: &mut F) -> io::Result<()>
+where
+    F: FnMut(&Path) -> io::Result<()>,
+{
+    if path.is_dir() {
+        for entry in fs::read_dir(path)? {
+            let path = entry?.path();
+
+            if path.is_dir() {
+                find_all_files_symlink(&path, op)?;
+            } else if path.symlink_metadata()?.is_file() {
+                op(&path)?;
             }
         }
     }

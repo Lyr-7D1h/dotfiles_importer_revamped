@@ -30,7 +30,14 @@ impl Importer {
         if filenames.len() > self.state.changed_files.len() {
             self.state.changed_files = filenames.clone();
             self.state.save()?;
-            self.notify(&format!("You have {} changed files.", filenames.len()))?;
+            let mut body = format!("You have {} changed files.", filenames.len());
+            if self.state.suggested_files.len() > 0 {
+                body.push_str(&format!(
+                    "\nAnd {} suggested files.",
+                    self.state.suggested_files.len()
+                ));
+            }
+            self.notify(&body)?;
         }
         sleep(time::Duration::from_secs(300));
         self.listen()
