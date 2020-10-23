@@ -1,7 +1,7 @@
-/target
+target
 Cargo.lock
-/backup
-/repository
-/settings.json
-/.state.json
-/config.json
+backup
+repository
+settings.json
+state.json
+config.json

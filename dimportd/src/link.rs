@@ -1,6 +1,7 @@
+use crate::util::find_all_files_symlink;
 use log::{debug, info};
 
-use crate::{util::find_equal_files, Importer};
+use crate::{util::find_equal_files, Importer, BACKUP_DIR};
 use std::fs;
 use std::io;
 use std::io::Error;
@@ -12,7 +13,7 @@ impl Importer {
         let mut c = 0;
         let backup = |_from: &Path, to: &Path, cur: &Path| {
             if to.exists() {
-                let mut backup_path = Path::new("backup").join(cur);
+                let mut backup_path = Path::new(BACKUP_DIR).join(cur);
                 if !backup_path.exists() {
                     fs::create_dir_all(&backup_path)?;
                 }
@@ -62,14 +63,16 @@ impl Importer {
                 };
 
                 return find_equal_files(
-                    Path::new("backup"),
+                    Path::new(BACKUP_DIR),
                     &self.config.home,
                     Path::new(""),
                     &self.config.ignore_files,
                     &mut restore_from_backup,
                 );
             }
-            let backup_path = Path::new("backup").join(_cur).join(to.file_name().unwrap());
+            let backup_path = Path::new(BACKUP_DIR)
+                .join(_cur)
+                .join(to.file_name().unwrap());
 
             if backup_path.exists() {
                 debug!("Copying {:?} from backup to {:?}", backup_path, to);
@@ -80,6 +83,22 @@ impl Importer {
         };
 
         self.recurse_with_config(&op)
+    }
+    pub fn intitialize_mapped(&mut self) -> Result<(), Error> {
+        let home = self.config.home.clone();
+
+        self.state.mapped_files = vec![];
+        self.state.save()?;
+
+        let mut op = |file: &Path| {
+            let file = file.to_str().unwrap().to_string();
+            debug!("Adding {} to Mapped Files", file);
+            self.state.mapped_files.push(file);
+            self.state.save()?;
+            Ok(())
+        };
+
+        find_all_files_symlink(&home, &mut op)
     }
 
     fn recurse_with_config<F>(&self, mut op: F) -> Result<(), Error>

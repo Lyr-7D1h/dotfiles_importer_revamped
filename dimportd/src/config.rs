@@ -1,3 +1,5 @@
+use crate::PUBLIC_KEY_PATH;
+use crate::{CONFIG_PATH, PRIVATE_KEY_PATH, REPOSITORY_DIR};
 use git2::{Cred, RemoteCallbacks, Repository};
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
@@ -21,7 +23,7 @@ struct UnserializedConfig {
 
 impl Config {
     pub fn from_settings() -> Result<Config, Box<dyn Error>> {
-        let file = match File::open("config.json") {
+        let file = match File::open(CONFIG_PATH) {
             Ok(file) => file,
             Err(_) => {
                 let default_config = UnserializedConfig {
@@ -34,8 +36,8 @@ impl Config {
                     ],
                 };
                 let data = serde_json::to_string(&default_config)?;
-                fs::write("config.json", data)?;
-                File::open("config.json")?
+                fs::write(CONFIG_PATH, data)?;
+                File::open(CONFIG_PATH)?
             }
         };
 
@@ -68,7 +70,7 @@ impl Config {
 }
 
 fn get_repository(url: String, home: &Path) -> Result<Repository, Box<dyn Error>> {
-    let path = PathBuf::from("repository");
+    let path = PathBuf::from(REPOSITORY_DIR);
     match Repository::open(&path) {
         Ok(r) => Ok(r),
         Err(_) => {
@@ -79,7 +81,7 @@ fn get_repository(url: String, home: &Path) -> Result<Repository, Box<dyn Error>
                 Cred::ssh_key(
                     username_from_url.unwrap(),
                     None,
-                    &home.join(".ssh/id_rsa"),
+                    Path::new(PRIVATE_KEY_PATH),
                     None,
                 )
             });
@@ -90,10 +92,9 @@ fn get_repository(url: String, home: &Path) -> Result<Repository, Box<dyn Error>
             let mut builder = git2::build::RepoBuilder::new();
             builder.fetch_options(fo);
 
-            match builder.clone(&url, &path) {
-                Ok(r) => Ok(r),
-                Err(e) => Err(Box::new(e)),
-            }
+            let repo = builder.clone(&url, &path)?;
+            println!("{:?}", repo.is_empty().unwrap());
+            return Ok(repo);
         }
     }
 }

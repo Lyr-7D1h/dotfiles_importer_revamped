@@ -1,0 +1,15 @@
+[Unit]
+Description=Dotfiles Import Deamon
+Requires=nordvpnd.socket
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/sbin/dimportd
+NonBlocking=true
+KillMode=process
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

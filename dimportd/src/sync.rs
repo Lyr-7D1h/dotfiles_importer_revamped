@@ -61,7 +61,6 @@ impl Importer {
             Ok(())
         };
 
-        find_all_files_symlink(&home, &mut op)?;
-        Ok(())
+        find_all_files_symlink(&home, &mut op)
     }
 }

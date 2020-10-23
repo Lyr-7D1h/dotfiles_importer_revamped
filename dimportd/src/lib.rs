@@ -13,6 +13,13 @@ use config::Config;
 mod state;
 use state::State;
 
+static CONFIG_PATH: &str = "../config.json";
+static STATE_PATH: &str = "../state.json";
+static REPOSITORY_DIR: &str = "../repository";
+static BACKUP_DIR: &str = "../backup";
+static PRIVATE_KEY_PATH: &str = "/home/lyr/.ssh/id_rsa";
+static PUBLIC_KEY_PATH: &str = "/home/lyr/.ssh/id_rsa.pub";
+
 pub struct Importer {
     state: State,
     config: Config,
@@ -42,6 +49,7 @@ impl Importer {
         sleep(time::Duration::from_secs(300));
         self.listen()
     }
+
     pub fn notify(&self, body: &str) -> notify_rust::error::Result<NotificationHandle> {
         info!("Notify: {}", body);
         Notification::new()
@@ -49,6 +57,7 @@ impl Importer {
             .body(body)
             .show()
     }
+
     pub fn setup(&mut self) -> Result<(), Box<dyn Error>> {
         if !self.state.initialized {
             info!("Setting up...");
@@ -78,6 +87,9 @@ impl Importer {
                     return io::Error::new(io::ErrorKind::Other, format!("Linking failed: {}", e));
                 }
             })?;
+
+            self.intitialize_mapped()?;
+
             self.state.initialized = true;
             self.state.save()?;
             return Ok(());

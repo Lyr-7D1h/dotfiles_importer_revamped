@@ -1,1 +1,5 @@
-{"repository":"","home":"/home/test","ignore_files":["README.md",".gitignore",".git"]}
+{
+  "repository": "git@github.com:Lyr-7D1h/dotfiles.git",
+  "home": "/home/test",
+  "ignore_files": ["README.md", ".gitignore", ".git"]
+}
