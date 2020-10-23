@@ -1,4 +1,3 @@
-use crate::PUBLIC_KEY_PATH;
 use crate::{CONFIG_PATH, PRIVATE_KEY_PATH, REPOSITORY_DIR};
 use git2::{Cred, RemoteCallbacks, Repository};
 use log::{debug, info};
@@ -50,7 +49,7 @@ impl Config {
 
         info!("Fetched config");
 
-        let repository = get_repository(uconfig.repository, &home)?;
+        let repository = get_repository(uconfig.repository)?;
         let ignore_files: Vec<PathBuf> = uconfig
             .ignore_files
             .iter()
@@ -69,17 +68,18 @@ impl Config {
     }
 }
 
-fn get_repository(url: String, home: &Path) -> Result<Repository, Box<dyn Error>> {
+fn get_repository(url: String) -> Result<Repository, Box<dyn Error>> {
     let path = PathBuf::from(REPOSITORY_DIR);
     match Repository::open(&path) {
         Ok(r) => Ok(r),
         Err(_) => {
-            debug!("Repository path does not exist cloning...");
-            let mut callbacks = RemoteCallbacks::new();
+            info!("Repository path does not exist cloning...");
 
-            callbacks.credentials(|_url, username_from_url, _allowed_types| {
+            let mut callbacks = RemoteCallbacks::new();
+            callbacks.credentials(|url, username_from_url, _allowed_types| {
+                info!("Asking ssh credentials for: {:?}", url);
                 Cred::ssh_key(
-                    username_from_url.unwrap(),
+                    username_from_url.unwrap_or("git"),
                     None,
                     Path::new(PRIVATE_KEY_PATH),
                     None,
@@ -93,7 +93,6 @@ fn get_repository(url: String, home: &Path) -> Result<Repository, Box<dyn Error>
             builder.fetch_options(fo);
 
             let repo = builder.clone(&url, &path)?;
-            println!("{:?}", repo.is_empty().unwrap());
             return Ok(repo);
         }
     }

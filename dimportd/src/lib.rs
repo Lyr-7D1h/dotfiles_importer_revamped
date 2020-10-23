@@ -17,8 +17,7 @@ static CONFIG_PATH: &str = "../config.json";
 static STATE_PATH: &str = "../state.json";
 static REPOSITORY_DIR: &str = "../repository";
 static BACKUP_DIR: &str = "../backup";
-static PRIVATE_KEY_PATH: &str = "/home/lyr/.ssh/id_rsa";
-static PUBLIC_KEY_PATH: &str = "/home/lyr/.ssh/id_rsa.pub";
+static PRIVATE_KEY_PATH: &str = "~/.ssh/id_ecdsa";
 
 pub struct Importer {
     state: State,
