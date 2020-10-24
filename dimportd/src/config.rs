@@ -1,6 +1,6 @@
 use crate::{CONFIG_PATH, PRIVATE_KEY_PATH, REPOSITORY_DIR};
 use git2::{Cred, RemoteCallbacks, Repository};
-use log::{debug, info};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::BufReader;

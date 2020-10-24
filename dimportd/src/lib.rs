@@ -4,6 +4,7 @@ use notify_rust::{Notification, NotificationHandle};
 use std::{error::Error, io, thread::sleep, time};
 
 mod link;
+mod server;
 mod sync;
 mod util;
 
@@ -12,6 +13,9 @@ use config::Config;
 
 mod state;
 use state::State;
+
+static SOCKET_PATH: &str = "/tmp/dimport-socket";
+static BUFFER_SIZE: usize = 5000;
 
 static CONFIG_PATH: &str = "../config.json";
 static STATE_PATH: &str = "../state.json";
@@ -31,22 +35,29 @@ impl Importer {
         Ok(Importer { state, config })
     }
     pub fn listen(&mut self) -> Result<(), Box<dyn Error>> {
-        let filenames = self.sync()?;
-        // if new changed files notify
-        if filenames.len() > self.state.changed_files.len() {
-            self.state.changed_files = filenames.clone();
-            self.state.save()?;
-            let mut body = format!("You have {} changed files.", filenames.len());
-            if self.state.suggested_files.len() > 0 {
-                body.push_str(&format!(
-                    "\nAnd {} suggested files.",
-                    self.state.suggested_files.len()
-                ));
+        let server = server::Server::new()?;
+        debug!("Created server listener");
+
+        loop {
+            info!("Synchronizing..");
+            let filenames = self.sync()?;
+
+            // if new changed files notify
+            if filenames.len() > self.state.changed_files.len() {
+                self.state.changed_files = filenames.clone();
+                self.state.save()?;
+                let mut body = format!("You have {} changed files.", filenames.len());
+                if self.state.suggested_files.len() > 0 {
+                    body.push_str(&format!(
+                        "\nAnd {} suggested files.",
+                        self.state.suggested_files.len()
+                    ));
+                }
+                self.notify(&body)?;
             }
-            self.notify(&body)?;
+
+            server.check_messages_for_300(self)?;
         }
-        sleep(time::Duration::from_secs(300));
-        self.listen()
     }
 
     pub fn notify(&self, body: &str) -> notify_rust::error::Result<NotificationHandle> {
