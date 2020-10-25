@@ -50,6 +50,7 @@ impl Importer {
         self.recurse_with_config(&link)
     }
     pub fn restore(&self) -> Result<(), Error> {
+        info!("Restoring from backup");
         let op = |_from: &Path, to: &Path, _cur: &Path| {
             // Remove all symbolic links made
             if let Ok(meta) = to.symlink_metadata() {

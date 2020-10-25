@@ -6,7 +6,7 @@ mod args;
 use args::{Args, Ignore};
 
 static SOCKET_PATH: &str = "/tmp/dimport-socket";
-static BUFFER_SIZE: usize = 5000;
+static BUFFER_SIZE: usize = 10000;
 
 fn main() {
     let args = Args::from(env::args().collect()).unwrap_or_else(|e| {
@@ -31,6 +31,11 @@ fn main() {
         Args::Backup => {
             write("backup");
         }
+        Args::Config => write("config"),
+        Args::Set(set) => match set {
+            args::Set::Repository(repo) => write(&format!("set repo {}", repo)),
+            args::Set::Home(path) => write(&format!("set home {}", path.to_str().unwrap())),
+        },
         Args::Ignore(ignore) => match ignore {
             Ignore::All => write("ignore all"),
             Ignore::Search(regex) => {
@@ -50,12 +55,16 @@ fn main() {
                 write("save");
             }
         }
-        _ => {}
     }
 
     stream.read_exact(&mut buffer).unwrap();
     let response = String::from_utf8(buffer).unwrap();
-    println!("{}", response);
+    if response.starts_with("O") {
+        println!("{}", response.strip_prefix("O ").unwrap())
+    } else if response.starts_with("E") {
+        eprintln!("{}", response.strip_prefix("E ").unwrap());
+        process::exit(1)
+    }
 }
 
 fn raw(request: &str) -> Vec<u8> {

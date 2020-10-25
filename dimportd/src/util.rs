@@ -1,9 +1,14 @@
+use crate::PRIVATE_KEY_PATH;
+use git2::Cred;
+use git2::RemoteCallbacks;
+use git2::Repository;
+use std::error::Error;
 use std::{
     fs, io,
     path::{Path, PathBuf},
 };
 
-use log::debug;
+use log::{debug, info};
 
 pub fn find_equal_files<F>(
     src: &Path,
@@ -55,4 +60,33 @@ where
         }
     }
     Ok(())
+}
+
+pub fn get_repository(url: &str, path: &Path) -> Result<Repository, Box<dyn Error>> {
+    match Repository::open(&path) {
+        Ok(r) => Ok(r),
+        Err(_) => {
+            info!("Repository path does not exist cloning...");
+
+            let mut callbacks = RemoteCallbacks::new();
+            callbacks.credentials(|url, username_from_url, _allowed_types| {
+                debug!("Asking ssh credentials for: {:?}", url);
+                Cred::ssh_key(
+                    username_from_url.unwrap_or("git"),
+                    None,
+                    Path::new(PRIVATE_KEY_PATH),
+                    None,
+                )
+            });
+
+            let mut fo = git2::FetchOptions::new();
+            fo.remote_callbacks(callbacks);
+
+            let mut builder = git2::build::RepoBuilder::new();
+            builder.fetch_options(fo);
+
+            let repo = builder.clone(&url, &path)?;
+            return Ok(repo);
+        }
+    }
 }

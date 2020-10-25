@@ -10,6 +10,7 @@ use crate::Importer;
 impl Importer {
     // Synchronize every 5 minutes
     pub fn sync(&mut self) -> Result<Vec<String>, Box<dyn Error>> {
+        info!("Synchronizing..");
         self.link_removed()?;
         self.update_suggested()?;
 

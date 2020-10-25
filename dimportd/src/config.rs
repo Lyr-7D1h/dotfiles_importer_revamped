@@ -1,10 +1,14 @@
-use crate::{CONFIG_PATH, PRIVATE_KEY_PATH, REPOSITORY_DIR};
-use git2::{Cred, RemoteCallbacks, Repository};
+use crate::util::get_repository;
+use crate::CONFIG_PATH;
+use crate::REPOSITORY_DIR;
+use git2::Repository;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
+use std::io::prelude::*;
 use std::io::BufReader;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 use std::{env, error::Error};
 
 pub struct Config {
@@ -49,7 +53,7 @@ impl Config {
 
         info!("Fetched config");
 
-        let repository = get_repository(uconfig.repository)?;
+        let repository = get_repository(&uconfig.repository, Path::new(REPOSITORY_DIR))?;
         let ignore_files: Vec<PathBuf> = uconfig
             .ignore_files
             .iter()
@@ -66,34 +70,24 @@ impl Config {
 
         Ok(config)
     }
-}
 
-fn get_repository(url: String) -> Result<Repository, Box<dyn Error>> {
-    let path = PathBuf::from(REPOSITORY_DIR);
-    match Repository::open(&path) {
-        Ok(r) => Ok(r),
-        Err(_) => {
-            info!("Repository path does not exist cloning...");
+    pub fn set_home(&mut self, home: &str) {
+        self.home = PathBuf::from(home);
+    }
 
-            let mut callbacks = RemoteCallbacks::new();
-            callbacks.credentials(|url, username_from_url, _allowed_types| {
-                info!("Asking ssh credentials for: {:?}", url);
-                Cred::ssh_key(
-                    username_from_url.unwrap_or("git"),
-                    None,
-                    Path::new(PRIVATE_KEY_PATH),
-                    None,
-                )
-            });
-
-            let mut fo = git2::FetchOptions::new();
-            fo.remote_callbacks(callbacks);
-
-            let mut builder = git2::build::RepoBuilder::new();
-            builder.fetch_options(fo);
-
-            let repo = builder.clone(&url, &path)?;
-            return Ok(repo);
+    /// Removes current repository and sets a new one in its place and saves to CONFIG_PATH
+    pub fn set_repository(&mut self, repository_url: &str) -> Result<(), Box<dyn Error>> {
+        let repo_path = Path::new(REPOSITORY_DIR);
+        if repo_path.exists() {
+            fs::remove_dir_all(repo_path)?;
         }
+        self.repository = get_repository(repository_url, repo_path)?;
+        let config_file = File::open(CONFIG_PATH)?;
+        let reader = BufReader::new(&config_file);
+        let mut uconfig: UnserializedConfig = serde_json::from_reader(reader)?;
+        uconfig.repository = repository_url.to_string();
+        let data = serde_json::to_vec_pretty(&uconfig)?;
+        fs::write(CONFIG_PATH, data)?;
+        Ok(())
     }
 }

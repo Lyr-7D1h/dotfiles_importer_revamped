@@ -5,6 +5,8 @@ use std::fs;
 use std::io;
 use std::{fs::File, io::BufReader};
 
+pub struct Difference {}
+
 #[derive(Serialize, Deserialize)]
 pub struct State {
     pub initialized: bool,

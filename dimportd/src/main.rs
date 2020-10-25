@@ -11,10 +11,10 @@ fn main() {
         process::exit(1)
     });
 
-    // importer.setup().unwrap_or_else(|e| {
-    //     error!("Setup failed: {}", e);
-    //     process::exit(1)
-    // });
+    importer.setup().unwrap_or_else(|e| {
+        error!("Setup failed: {}", e);
+        process::exit(1)
+    });
 
     importer.listen().unwrap_or_else(|e| {
         error!("Could not sync: {}", e);

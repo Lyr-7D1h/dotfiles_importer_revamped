@@ -1,7 +1,7 @@
-use log::{debug, info};
+use log::info;
 use notify_rust;
 use notify_rust::{Notification, NotificationHandle};
-use std::{error::Error, io, thread::sleep, time};
+use std::{error::Error, io};
 
 mod link;
 mod server;
@@ -15,13 +15,13 @@ mod state;
 use state::State;
 
 static SOCKET_PATH: &str = "/tmp/dimport-socket";
-static BUFFER_SIZE: usize = 5000;
+static BUFFER_SIZE: usize = 10000;
 
 static CONFIG_PATH: &str = "../config.json";
 static STATE_PATH: &str = "../state.json";
 static REPOSITORY_DIR: &str = "../repository";
 static BACKUP_DIR: &str = "../backup";
-static PRIVATE_KEY_PATH: &str = "~/.ssh/id_ecdsa";
+static PRIVATE_KEY_PATH: &str = "/home/lyr/.ssh/id_ecdsa";
 
 pub struct Importer {
     state: State,
@@ -36,17 +36,15 @@ impl Importer {
     }
     pub fn listen(&mut self) -> Result<(), Box<dyn Error>> {
         let server = server::Server::new()?;
-        debug!("Created server listener");
 
         loop {
-            info!("Synchronizing..");
-            let filenames = self.sync()?;
+            let changes = self.sync()?;
 
             // if new changed files notify
-            if filenames.len() > self.state.changed_files.len() {
-                self.state.changed_files = filenames.clone();
+            if changes.len() > self.state.changed_files.len() {
+                self.state.changed_files = changes.clone();
                 self.state.save()?;
-                let mut body = format!("You have {} changed files.", filenames.len());
+                let mut body = format!("You have {} changed files.", changes.len());
                 if self.state.suggested_files.len() > 0 {
                     body.push_str(&format!(
                         "\nAnd {} suggested files.",
@@ -79,8 +77,7 @@ impl Importer {
             })?;
 
             self.link().map_err(|e| {
-                debug!("Restoring from backup");
-
+                info!("Could not link files: {}", e);
                 let err = self
                     .restore()
                     .map_err(|e| {
@@ -99,6 +96,9 @@ impl Importer {
             })?;
 
             self.intitialize_mapped()?;
+
+            self.state.suggested_files = vec![];
+            self.state.save()?;
 
             self.state.initialized = true;
             self.state.save()?;
