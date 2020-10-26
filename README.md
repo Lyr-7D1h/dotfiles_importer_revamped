@@ -11,5 +11,5 @@ The Service will sync and update everything behind the scenes
 
 ## Notes
 
-No support for `https://` repositories.
+No save/push support for `https://` repositories.
 Mind that I had issues with rsa ssh keys ecdsa works fine.

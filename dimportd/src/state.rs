@@ -1,17 +1,37 @@
 use crate::STATE_PATH;
+use git2::{Delta, StatusEntry};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fs;
 use std::io;
 use std::{fs::File, io::BufReader};
 
-pub struct Difference {}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Difference {
+    pub kind: String,
+    pub path: String,
+}
+impl Difference {
+    pub fn from_status_entry(entry: StatusEntry) -> Difference {
+        let path = entry.path().unwrap().into();
+        let status = entry.index_to_workdir().unwrap().status();
+        let kind = match status {
+            Delta::Modified => "Modified",
+            Delta::Added => "Added",
+            Delta::Deleted => "Deleted",
+            _ => "Undefined",
+        }
+        .into();
+
+        Difference { kind, path }
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct State {
     pub initialized: bool,
     pub repository: String,
-    pub changed_files: Vec<String>,
+    pub changed_files: Vec<Difference>,
     pub mapped_files: Vec<String>,
     pub suggested_files: Vec<String>,
 }

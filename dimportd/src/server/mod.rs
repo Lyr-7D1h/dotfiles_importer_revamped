@@ -1,5 +1,6 @@
 use crate::Importer;
 use log::{debug, info};
+use regex::Regex;
 
 use crate::{BUFFER_SIZE, SOCKET_PATH};
 use std::os::unix::net::UnixListener;
@@ -99,6 +100,12 @@ fn get_response(request: &str, importer: &mut Importer) -> Result<String, String
             "status" => {
                 return handlers::status(importer);
             }
+            "backup" => {
+                return handlers::backup(importer);
+            }
+            "config" => {
+                return handlers::config(importer);
+            }
             "set" => {
                 if let Some(arg) = request.next() {
                     if arg.eq("repo") {
@@ -106,7 +113,24 @@ fn get_response(request: &str, importer: &mut Importer) -> Result<String, String
                             return handlers::set_repository(repo, importer);
                         }
                     } else if arg.eq("home") {
+                        if let Some(home) = request.next() {
+                            return handlers::set_home(home, importer);
+                        }
                     }
+                }
+            }
+            "ignore" => {
+                if let Some(arg) = request.next() {
+                    if arg.eq("all") {
+                        return handlers::ignore_all(importer);
+                    } else {
+                        return handlers::ignore_regex(arg, importer);
+                    }
+                }
+            }
+            "restore" => {
+                if let Some(arg) = request.next() {
+                    return handlers::restore(arg, importer);
                 }
             }
             _ => return Err("Invalid command".into()),

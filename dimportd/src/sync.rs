@@ -2,26 +2,30 @@ use std::error::Error;
 use std::path::Path;
 use std::{fs, io};
 
+use git2::StatusEntry;
 use log::info;
 
-use crate::util::{find_all_files_symlink, find_equal_files};
 use crate::Importer;
+use crate::{
+    state::Difference,
+    util::{find_all_files_symlink, find_equal_files},
+};
 
 impl Importer {
     // Synchronize every 5 minutes
-    pub fn sync(&mut self) -> Result<Vec<String>, Box<dyn Error>> {
+    pub fn sync(&mut self) -> Result<Vec<Difference>, Box<dyn Error>> {
         info!("Synchronizing..");
         self.link_removed()?;
         self.update_suggested()?;
 
         let statuses = self.config.repository.statuses(None)?;
 
-        let filenames = statuses
+        let differences = statuses
             .iter()
-            .map(|status| status.path().unwrap().to_string())
+            .map(|status| Difference::from_status_entry(status))
             .collect();
-
-        Ok(filenames)
+        println!("{:?}", differences);
+        Ok(differences)
     }
 
     /// if symlink removed -> remove file from repository

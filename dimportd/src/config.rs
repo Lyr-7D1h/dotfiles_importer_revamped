@@ -5,7 +5,6 @@ use git2::Repository;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
-use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::Path;
 use std::path::PathBuf;
@@ -71,8 +70,19 @@ impl Config {
         Ok(config)
     }
 
-    pub fn set_home(&mut self, home: &str) {
-        self.home = PathBuf::from(home);
+    pub fn set_home(&mut self, home: &str) -> Result<(), Box<dyn Error>> {
+        let path = PathBuf::from(home);
+        if !path.is_dir() {
+            return Err("Path does not exist or is not a directory".into());
+        }
+        self.home = path;
+        let config_file = File::open(CONFIG_PATH)?;
+        let reader = BufReader::new(&config_file);
+        let mut uconfig: UnserializedConfig = serde_json::from_reader(reader)?;
+        uconfig.home = home.to_string();
+        let data = serde_json::to_vec_pretty(&uconfig)?;
+        fs::write(CONFIG_PATH, data)?;
+        Ok(())
     }
 
     /// Removes current repository and sets a new one in its place and saves to CONFIG_PATH

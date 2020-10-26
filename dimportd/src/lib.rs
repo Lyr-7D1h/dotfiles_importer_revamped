@@ -42,9 +42,9 @@ impl Importer {
 
             // if new changed files notify
             if changes.len() > self.state.changed_files.len() {
-                self.state.changed_files = changes.clone();
-                self.state.save()?;
                 let mut body = format!("You have {} changed files.", changes.len());
+                self.state.changed_files = changes;
+                self.state.save()?;
                 if self.state.suggested_files.len() > 0 {
                     body.push_str(&format!(
                         "\nAnd {} suggested files.",
@@ -98,6 +98,7 @@ impl Importer {
             self.intitialize_mapped()?;
 
             self.state.suggested_files = vec![];
+            self.state.changed_files = vec![];
             self.state.save()?;
 
             self.state.initialized = true;
