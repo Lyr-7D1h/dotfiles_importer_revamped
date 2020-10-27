@@ -34,25 +34,12 @@ impl Importer {
         let config = Config::from_settings()?;
         Ok(Importer { state, config })
     }
+
     pub fn listen(&mut self) -> Result<(), Box<dyn Error>> {
         let server = server::Server::new()?;
 
         loop {
-            let changes = self.sync()?;
-
-            // if new changed files notify
-            if changes.len() > self.state.changed_files.len() {
-                let mut body = format!("You have {} changed files.", changes.len());
-                self.state.changed_files = changes;
-                self.state.save()?;
-                if self.state.suggested_files.len() > 0 {
-                    body.push_str(&format!(
-                        "\nAnd {} suggested files.",
-                        self.state.suggested_files.len()
-                    ));
-                }
-                self.notify(&body)?;
-            }
+            self.sync_and_notify()?;
 
             server.check_messages_for_300(self)?;
         }
@@ -76,7 +63,7 @@ impl Importer {
                 )
             })?;
 
-            self.link().map_err(|e| {
+            self.link_all().map_err(|e| {
                 info!("Could not link files: {}", e);
                 let err = self
                     .restore()
@@ -98,7 +85,7 @@ impl Importer {
             self.intitialize_mapped()?;
 
             self.state.suggested_files = vec![];
-            self.state.changed_files = vec![];
+            self.state.differences = vec![];
             self.state.save()?;
 
             self.state.initialized = true;

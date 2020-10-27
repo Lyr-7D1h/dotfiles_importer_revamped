@@ -2,7 +2,6 @@ use std::error::Error;
 use std::path::Path;
 use std::{fs, io};
 
-use git2::StatusEntry;
 use log::info;
 
 use crate::Importer;
@@ -12,7 +11,32 @@ use crate::{
 };
 
 impl Importer {
-    // Synchronize every 5 minutes
+    /// Synchronize and notify if new changes and save to state
+    pub fn sync_and_notify(&mut self) -> Result<(), Box<dyn Error>> {
+        let changes = self.sync()?;
+        println!("{}", changes.len());
+
+        if changes.len() > self.state.differences.len() {
+            let mut body = format!("You have {} changed files.", changes.len());
+            if self.state.suggested_files.len() > 0 {
+                body.push_str(&format!(
+                    "\nAnd {} suggested files.",
+                    self.state.suggested_files.len()
+                ));
+            }
+            self.notify(&body)?;
+        }
+
+        // Always update changes
+        self.state.differences = changes;
+        self.state.save()?;
+
+        Ok(())
+    }
+
+    /// Remove files if link removed
+    /// Update Suggested files
+    /// Return file status for changes
     pub fn sync(&mut self) -> Result<Vec<Difference>, Box<dyn Error>> {
         info!("Synchronizing..");
         self.link_removed()?;
@@ -24,7 +48,7 @@ impl Importer {
             .iter()
             .map(|status| Difference::from_status_entry(status))
             .collect();
-        println!("{:?}", differences);
+
         Ok(differences)
     }
 

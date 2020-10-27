@@ -106,6 +106,9 @@ fn get_response(request: &str, importer: &mut Importer) -> Result<String, String
             "config" => {
                 return handlers::config(importer);
             }
+            "sync" => {
+                return handlers::sync(importer);
+            }
             "set" => {
                 if let Some(arg) = request.next() {
                     if arg.eq("repo") {

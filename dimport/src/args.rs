@@ -15,6 +15,7 @@ pub enum Args {
     Status,
     Backup,
     Config,
+    Sync,
     Set(Set),
     Ignore(Ignore),
     Restore(Regex),
@@ -34,6 +35,7 @@ impl Args {
                 "status" => return Ok(Args::Status),
                 "backup" => return Ok(Args::Backup),
                 "config" => return Ok(Args::Config),
+                "sync" => return Ok(Args::Sync),
                 "set" => {
                     if let Some(arg) = args.next() {
                         if arg.eq("repo") {
@@ -99,6 +101,7 @@ Commands:
     status                          Show changed files and show suggested files.
     backup                          Backup current conflicting dotfiles, will override if there already is an backup
     config                          Return current configuration
+    sync                            Synchronize files right now (otherwise being run every ~5 min)
     set [repo|home] [<url>|<path>]  Configure the dotfiles importer
     ignore [all|<regex>]            If you want to ignore all suggested files or only by regex
     restore <regex>                 Restore a removed or changed file

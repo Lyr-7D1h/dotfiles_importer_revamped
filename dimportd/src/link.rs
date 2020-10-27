@@ -29,7 +29,30 @@ impl Importer {
         info!("Backed up {} files", c);
         Ok(())
     }
-    pub fn link(&self) -> Result<(), Error> {
+    pub fn link(&self, relative_source_path: &str) -> Result<(), Error> {
+        let src = self
+            .config
+            .repository
+            .workdir()
+            .unwrap()
+            .join(relative_source_path);
+        let dest = &self.config.home.join(relative_source_path);
+
+        // Remove if exists
+        if let Ok(meta) = dest.symlink_metadata() {
+            let meta = meta.file_type();
+            if meta.is_file() || meta.is_symlink() {
+                fs::remove_file(dest)?;
+            } else if meta.is_dir() {
+                fs::remove_dir_all(dest)?;
+            }
+        }
+        if !dest.parent().unwrap().exists() {
+            fs::create_dir_all(dest.parent().unwrap())?;
+        }
+        symlink(src, dest)
+    }
+    pub fn link_all(&self) -> Result<(), Error> {
         let link = |from: &Path, to: &Path, _cur: &Path| {
             // Remove if exists
             if let Ok(meta) = to.symlink_metadata() {

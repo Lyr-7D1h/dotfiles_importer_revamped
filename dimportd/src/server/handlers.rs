@@ -1,5 +1,7 @@
 use std::{fs, path::Path};
 
+use git2::build::CheckoutBuilder;
+use log::debug;
 use regex::Regex;
 
 use crate::{util::get_repository, Importer};
@@ -7,29 +9,34 @@ use crate::{util::get_repository, Importer};
 pub fn status(importer: &Importer) -> Result<String, String> {
     let mut result = String::new();
 
-    if importer.state.changed_files.len() > 0 {
+    if importer.state.differences.len() > 0 {
         result.push_str("Changed Files\n");
         result.push_str(
             &importer
                 .state
-                .changed_files
+                .differences
                 .iter()
                 .map(|diff| format!("[{}] {}", diff.kind, diff.path))
                 .collect::<Vec<String>>()
                 .join("\n"),
         );
+        result.push_str("\n");
+        if importer.state.suggested_files.len() > 0 {
+            result.push_str("\n");
+        }
     }
     let home_prefix = format!("{}/", importer.config.home.to_str().unwrap());
 
     if importer.state.suggested_files.len() > 0 {
-        let suggested_files: Vec<String> = importer
+        let suggested_files = importer
             .state
             .suggested_files
             .iter()
             .map(|file| file.strip_prefix(&home_prefix).unwrap().to_string())
-            .collect();
-        result.push_str("Suggested Files");
-        result.push_str(&suggested_files.join("\n"));
+            .collect::<Vec<String>>()
+            .join("\n");
+        result.push_str("Suggested Files\n");
+        result.push_str(&suggested_files);
     }
     if result.len() == 0 {
         return Ok("Everything is up to date and no suggestions".into());
@@ -65,6 +72,13 @@ Ignored Files: {}
         }
     }
     return Err("Problem resolving repository".into());
+}
+
+pub fn sync(importer: &mut Importer) -> Result<String, String> {
+    if let Err(e) = importer.sync_and_notify() {
+        return Err(format!("Could not sync: {}", e));
+    }
+    Ok("Synchronization succeeded".into())
 }
 
 pub fn set_repository(repo: &str, importer: &mut Importer) -> Result<String, String> {
@@ -140,15 +154,42 @@ pub fn ignore_regex(regex: &str, importer: &mut Importer) -> Result<String, Stri
         }
     });
 
+    let removed_amount = removed_suggested.len();
     importer.state.mapped_files.append(&mut removed_suggested);
 
-    Ok(format!(
-        "Ignored {} suggested files",
-        removed_suggested.len()
-    ))
+    Ok(format!("Ignored {} suggested files", removed_amount))
 }
 
 pub fn restore(regex: &str, importer: &Importer) -> Result<String, String> {
-    let regex = Regex::new(regex);
-    Ok(format!("Restored {} files", 2))
+    let regex = Regex::new(regex).unwrap();
+    let mut restore_file_paths = vec![];
+    let mut builder = CheckoutBuilder::new();
+    builder.force();
+
+    for diff in &importer.state.differences {
+        if regex.is_match(&diff.path) {
+            builder.path(&diff.path);
+            restore_file_paths.push(diff.path.clone());
+        }
+    }
+
+    if let Err(e) = importer
+        .config
+        .repository
+        .checkout_index(None, Some(&mut builder))
+    {
+        return Err(format!("Could not checkout files from repository: {}", e));
+    }
+
+    for file in restore_file_paths.iter() {
+        if let Err(e) = importer.link(file) {
+            return Err(format!("Could not link restored files: {}", e));
+        }
+    }
+
+    Ok(format!(
+        "{}\nRestored {} Files.",
+        restore_file_paths.join("\n"),
+        restore_file_paths.len(),
+    ))
 }

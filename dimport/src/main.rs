@@ -32,6 +32,7 @@ fn main() {
             write("backup");
         }
         Args::Config => write("config"),
+        Args::Sync => write("sync"),
         Args::Set(set) => match set {
             args::Set::Repository(repo) => write(&format!("set repo {}", repo)),
             args::Set::Home(path) => write(&format!("set home {}", path.to_str().unwrap())),
@@ -43,7 +44,7 @@ fn main() {
             }
         },
         Args::Restore(regex) => {
-            write(&format!("ignore {}", regex));
+            write(&format!("restore {}", regex));
         }
         Args::Add(path) => {
             write(&format!("add {}", path.to_str().unwrap()));
