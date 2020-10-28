@@ -1,7 +1,7 @@
 use log::error;
 use std::process;
 
-use dotfiles_importer::Importer;
+use dimportd::Importer;
 
 fn main() {
     env_logger::init();
