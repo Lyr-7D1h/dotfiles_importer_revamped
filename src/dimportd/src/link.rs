@@ -36,7 +36,7 @@ impl Importer {
             .workdir()
             .unwrap()
             .join(relative_source_path);
-        let dest = &self.config.home.join(relative_source_path);
+        let dest = &self.config.home_path.join(relative_source_path);
 
         // Remove if exists
         if let Ok(meta) = dest.symlink_metadata() {
@@ -88,7 +88,7 @@ impl Importer {
 
                 return find_equal_files(
                     Path::new(BACKUP_DIR),
-                    &self.config.home,
+                    &self.config.home_path,
                     Path::new(""),
                     &self.config.ignore_files,
                     &mut restore_from_backup,
@@ -109,7 +109,7 @@ impl Importer {
         self.recurse_with_config(&op)
     }
     pub fn intitialize_mapped(&mut self) -> Result<(), Error> {
-        let home = self.config.home.clone();
+        let home = self.config.home_path.clone();
 
         self.state.mapped_files = vec![];
         self.state.save()?;
@@ -130,7 +130,7 @@ impl Importer {
         F: FnMut(&Path, &Path, &Path) -> io::Result<()>,
     {
         let src = self.config.repository.workdir().unwrap();
-        let dest = &self.config.home;
+        let dest = &self.config.home_path;
 
         find_equal_files(src, dest, Path::new(""), &self.config.ignore_files, &mut op)
     }

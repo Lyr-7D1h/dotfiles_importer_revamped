@@ -9,6 +9,7 @@ pub enum Ignore {
 pub enum Set {
     Repository(String),
     Home(PathBuf),
+    PrivateKey(PathBuf),
 }
 
 pub enum Args {
@@ -52,6 +53,17 @@ impl Args {
                                     return Err("Path does not exist".into());
                                 }
                                 return Ok(Args::Set(Set::Home(path)));
+                            }
+                        } else if arg.eq("private_key") {
+                            if let Some(path) = args.next() {
+                                let path = PathBuf::from(path);
+                                if !path.is_absolute() {
+                                    return Err("Please give the absolute path".into());
+                                }
+                                if !path.exists() {
+                                    return Err("Path does not exist".into());
+                                }
+                                return Ok(Args::Set(Set::PrivateKey(path)));
                             }
                         }
                     }
@@ -101,15 +113,15 @@ Usage:
     dimport <command> [<args>]
 
 Commands:
-    status                          Show changed files and show suggested files.
-    backup                          Backup current conflicting dotfiles, will override if there already is an backup
-    config                          Return current configuration
-    sync                            Synchronize files right now (otherwise being run every ~5 min)
-    set [repo|home] [<url>|<path>]  Configure the dotfiles importer
-    ignore [all|<regex>]            If you want to ignore all suggested files or only by regex
-    restore <regex>                 Restore a removed or changed file
-    add <path>                      Add a file or directory to the repository
-    save [<message>]                Save current settings and give an optional description of changed files
+    status                                      Show changed files and show suggested files.
+    backup                                      Backup current conflicting dotfiles, will override if there already is an backup
+    config                                      Return current configuration
+    sync                                        Synchronize files right now (otherwise being run every ~5 min)
+    set [repo|home|private_key] [<url>|<path>]  Configure the dotfiles importer
+    ignore [all|<regex>]                        If you want to ignore all suggested files or only by regex
+    restore <regex>                             Restore a removed or changed file
+    add <path>                                  Add a file or directory to the repository
+    save [<message>]                            Save current settings and give an optional description of changed files
 "#
             .into());
     }

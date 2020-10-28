@@ -5,7 +5,7 @@ use std::{env, process};
 mod args;
 use args::{Args, Ignore};
 
-static SOCKET_PATH: &str = "/tmp/dimport-socket";
+static SOCKET_PATH: &str = "/run/dimportd.socket";
 static BUFFER_SIZE: usize = 10000;
 
 fn main() {
@@ -36,6 +36,9 @@ fn main() {
         Args::Set(set) => match set {
             args::Set::Repository(repo) => write(&format!("set repo {}", repo)),
             args::Set::Home(path) => write(&format!("set home {}", path.to_str().unwrap())),
+            args::Set::PrivateKey(path) => {
+                write(&format!("set private_key {}", path.to_str().unwrap()))
+            }
         },
         Args::Ignore(ignore) => match ignore {
             Ignore::All => write("ignore all"),

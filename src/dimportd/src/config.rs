@@ -12,14 +12,16 @@ use std::{env, error::Error};
 
 pub struct Config {
     pub repository: Repository,
-    pub home: PathBuf,
+    pub home_path: PathBuf,
+    pub private_key_path: PathBuf,
     pub ignore_files: Vec<PathBuf>,
 }
 
 #[derive(Serialize, Deserialize)]
 struct UnserializedConfig {
     repository: String,
-    home: String,
+    home_path: String,
+    private_key_path: String,
     ignore_files: Vec<String>,
 }
 
@@ -30,7 +32,8 @@ impl Config {
             Err(_) => {
                 let default_config = UnserializedConfig {
                     repository: String::new(),
-                    home: env::var("HOME")?,
+                    home_path: env::var("HOME")?,
+                    private_key_path: format!("{}/.ssh/id_ecdsa", env::var("HOME")?),
                     ignore_files: vec![
                         "README.md".to_string(),
                         ".gitignore".to_string(),
@@ -47,12 +50,19 @@ impl Config {
 
         let uconfig: UnserializedConfig = serde_json::from_reader(reader)?;
 
-        let home = PathBuf::from(uconfig.home);
-        home.metadata()?;
+        let home_path = PathBuf::from(uconfig.home_path);
+        home_path.metadata()?;
+
+        let private_key_path = PathBuf::from(uconfig.private_key_path);
+        private_key_path.metadata()?;
 
         info!("Fetched config");
 
-        let repository = repository_fetch(&uconfig.repository, Path::new(REPOSITORY_DIR))?;
+        let repository = repository_fetch(
+            &uconfig.repository,
+            Path::new(REPOSITORY_DIR),
+            &private_key_path,
+        )?;
         let ignore_files: Vec<PathBuf> = uconfig
             .ignore_files
             .iter()
@@ -63,7 +73,8 @@ impl Config {
 
         let config = Config {
             repository,
-            home,
+            home_path,
+            private_key_path,
             ignore_files,
         };
 
@@ -75,11 +86,26 @@ impl Config {
         if !path.is_dir() {
             return Err("Path does not exist or is not a directory".into());
         }
-        self.home = path;
+        self.home_path = path;
         let config_file = File::open(CONFIG_PATH)?;
         let reader = BufReader::new(&config_file);
         let mut uconfig: UnserializedConfig = serde_json::from_reader(reader)?;
-        uconfig.home = home.to_string();
+        uconfig.home_path = home.to_string();
+        let data = serde_json::to_vec_pretty(&uconfig)?;
+        fs::write(CONFIG_PATH, data)?;
+        Ok(())
+    }
+
+    pub fn set_private_key(&mut self, private_key: &str) -> Result<(), Box<dyn Error>> {
+        let path = PathBuf::from(private_key);
+        if !path.is_dir() {
+            return Err("Path does not exist or is not a directory".into());
+        }
+        self.private_key_path = path;
+        let config_file = File::open(CONFIG_PATH)?;
+        let reader = BufReader::new(&config_file);
+        let mut uconfig: UnserializedConfig = serde_json::from_reader(reader)?;
+        uconfig.private_key_path = private_key.to_string();
         let data = serde_json::to_vec_pretty(&uconfig)?;
         fs::write(CONFIG_PATH, data)?;
         Ok(())
@@ -91,7 +117,7 @@ impl Config {
         if repo_path.exists() {
             fs::remove_dir_all(repo_path)?;
         }
-        self.repository = repository_fetch(repository_url, repo_path)?;
+        self.repository = repository_fetch(repository_url, repo_path, &self.private_key_path)?;
         let config_file = File::open(CONFIG_PATH)?;
         let reader = BufReader::new(&config_file);
         let mut uconfig: UnserializedConfig = serde_json::from_reader(reader)?;

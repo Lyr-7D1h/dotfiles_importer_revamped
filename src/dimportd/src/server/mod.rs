@@ -118,6 +118,10 @@ fn get_response(request: &str, importer: &mut Importer) -> Result<String, String
                         if let Some(home) = request.next() {
                             return handlers::set_home(home, importer);
                         }
+                    } else if arg.eq("private_key") {
+                        if let Some(path) = request.next() {
+                            return handlers::set_private_key(path, importer);
+                        }
                     }
                 }
             }

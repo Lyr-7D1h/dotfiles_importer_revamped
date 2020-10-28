@@ -54,7 +54,7 @@ impl Importer {
     /// if symlink removed -> remove file from repository
     fn link_removed(&self) -> Result<(), io::Error> {
         let src = self.config.repository.workdir().unwrap();
-        let dest = &self.config.home;
+        let dest = &self.config.home_path;
 
         let mut op = |from: &Path, to: &Path, _cur: &Path| {
             if let Ok(meta) = to.symlink_metadata() {
@@ -73,7 +73,7 @@ impl Importer {
     }
 
     fn update_suggested(&mut self) -> Result<(), io::Error> {
-        let home = self.config.home.clone();
+        let home = self.config.home_path.clone();
 
         let mut op = |file: &Path| {
             let file = file.to_str().unwrap().to_string();

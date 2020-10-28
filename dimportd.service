@@ -1,8 +1,6 @@
 [Unit]
 Description=Dotfiles Import Deamon
-Requires=nordvpnd.socket
-After=network-online.target
-Wants=network-online.target
+Requires=dimportd.socket
 
 [Service]
 ExecStart=/usr/sbin/dimportd

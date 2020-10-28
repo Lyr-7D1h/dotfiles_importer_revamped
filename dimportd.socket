@@ -1,0 +1,10 @@
+[Unit]
+Description=Dotfiles Importer Daemon Socket
+PartOf=dimportd.service
+
+[Socket]
+ListenStream=/run/dimportd.sock
+NoDelay=true
+
+[Install]
+WantedBy=sockets.target

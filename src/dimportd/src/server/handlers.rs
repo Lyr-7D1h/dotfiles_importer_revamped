@@ -20,7 +20,7 @@ pub fn status(importer: &Importer) -> Result<String, String> {
             result.push_str("\n");
         }
     }
-    let home_prefix = format!("{}/", importer.config.home.to_str().unwrap());
+    let home_prefix = format!("{}/", importer.config.home_path.to_str().unwrap());
 
     if importer.state.suggested_files.len() > 0 {
         let suggested_files = importer
@@ -59,9 +59,10 @@ pub fn config(importer: &Importer) -> Result<String, String> {
                 r#"
 Repository: {:?}
 Home Path: {:?}
+Private Key Path: {:?}
 Ignored Files: {}
         "#,
-                url, importer.config.home, ignore_files
+                url, importer.config.home_path, importer.config.private_key_path, ignore_files
             );
             return Ok(res);
         }
@@ -83,7 +84,7 @@ pub fn set_repository(repo: &str, importer: &mut Importer) -> Result<String, Str
             return Err(e.to_string());
         }
     }
-    match repository_fetch(repo, test_path) {
+    match repository_fetch(repo, test_path, &importer.config.private_key_path) {
         Ok(_) => {
             // Reset home to how it was before
             if let Err(e) = importer.restore() {
@@ -123,6 +124,14 @@ pub fn set_home(home: &str, importer: &mut Importer) -> Result<String, String> {
     }
 
     return Ok("Succesfully changed and setup home folder".into());
+}
+
+pub fn set_private_key(private_key_path: &str, importer: &mut Importer) -> Result<String, String> {
+    if let Err(e) = importer.config.set_private_key(private_key_path) {
+        return Err(format!("Could not set home: {}", e));
+    }
+
+    return Ok("Succesfully changed private key path".into());
 }
 
 pub fn ignore_all(importer: &mut Importer) -> Result<String, String> {
@@ -190,7 +199,7 @@ pub fn restore(regex: &str, importer: &Importer) -> Result<String, String> {
 }
 
 pub fn add(absolute_src_path: &str, importer: &Importer) -> Result<String, String> {
-    let home_path_string = importer.config.home.to_str().unwrap();
+    let home_path_string = importer.config.home_path.to_str().unwrap();
     if !absolute_src_path.starts_with(home_path_string) {
         return Err("Path is not in home folder".into());
     }
@@ -234,7 +243,10 @@ pub fn save(description: Option<&str>, importer: &Importer) -> Result<String, St
 
     info!("Commited");
 
-    if let Err(e) = repository_push(&importer.config.repository) {
+    if let Err(e) = repository_push(
+        &importer.config.repository,
+        &importer.config.private_key_path,
+    ) {
         return Err(format!("Could not push repository: {}", e));
     }
     info!("Pushed commit");
