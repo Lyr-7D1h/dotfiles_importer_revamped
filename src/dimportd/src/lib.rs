@@ -14,14 +14,14 @@ use config::Config;
 mod state;
 use state::State;
 
-static SOCKET_PATH: &str = "/tmp/dimport-socket";
-static BUFFER_SIZE: usize = 10000;
+pub static SOCKET_PATH: &str = "/tmp/dimport-socket";
+pub static BUFFER_SIZE: usize = 10000;
 
-static CONFIG_PATH: &str = "../config.json";
-static STATE_PATH: &str = "../state.json";
-static REPOSITORY_DIR: &str = "../repository";
-static BACKUP_DIR: &str = "../backup";
-static PRIVATE_KEY_PATH: &str = "/home/lyr/.ssh/id_ecdsa";
+pub static CONFIG_PATH: &str = "../config.json";
+pub static STATE_PATH: &str = "../state.json";
+pub static REPOSITORY_DIR: &str = "../repository";
+pub static BACKUP_DIR: &str = "../backup";
+pub static PRIVATE_KEY_PATH: &str = "/home/lyr/.ssh/id_ecdsa";
 
 pub struct Importer {
     state: State,
