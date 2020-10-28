@@ -1,4 +1,5 @@
 use crate::STATE_PATH;
+use git2;
 use git2::{Delta, StatusEntry};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -14,10 +15,13 @@ pub struct Difference {
 impl Difference {
     pub fn from_status_entry(entry: StatusEntry) -> Difference {
         let path = entry.path().unwrap().into();
-        let status = entry.index_to_workdir().unwrap().status();
+        let status = match entry.index_to_workdir() {
+            Some(diff) => diff.status(),
+            None => Delta::Unreadable,
+        };
         let kind = match status {
             Delta::Modified => "Modified",
-            Delta::Added => "Added",
+            Delta::Added | Delta::Untracked => "Added",
             Delta::Deleted => "Deleted",
             _ => "Undefined",
         }

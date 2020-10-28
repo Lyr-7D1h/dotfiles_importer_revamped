@@ -1,4 +1,4 @@
-use crate::util::get_repository;
+use crate::util::repository_fetch;
 use crate::CONFIG_PATH;
 use crate::REPOSITORY_DIR;
 use git2::Repository;
@@ -52,7 +52,7 @@ impl Config {
 
         info!("Fetched config");
 
-        let repository = get_repository(&uconfig.repository, Path::new(REPOSITORY_DIR))?;
+        let repository = repository_fetch(&uconfig.repository, Path::new(REPOSITORY_DIR))?;
         let ignore_files: Vec<PathBuf> = uconfig
             .ignore_files
             .iter()
@@ -91,7 +91,7 @@ impl Config {
         if repo_path.exists() {
             fs::remove_dir_all(repo_path)?;
         }
-        self.repository = get_repository(repository_url, repo_path)?;
+        self.repository = repository_fetch(repository_url, repo_path)?;
         let config_file = File::open(CONFIG_PATH)?;
         let reader = BufReader::new(&config_file);
         let mut uconfig: UnserializedConfig = serde_json::from_reader(reader)?;

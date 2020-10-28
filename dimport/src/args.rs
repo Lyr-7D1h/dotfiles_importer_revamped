@@ -45,6 +45,9 @@ impl Args {
                         } else if arg.eq("home") {
                             if let Some(home) = args.next() {
                                 let path = PathBuf::from(home);
+                                if !path.is_absolute() {
+                                    return Err("Please give the absolute path".into());
+                                }
                                 if !path.exists() {
                                     return Err("Path does not exist".into());
                                 }
@@ -79,10 +82,10 @@ impl Args {
                     }
                 }
                 "save" => {
-                    let mut description = String::new();
-                    while let Some(arg) = args.next() {
-                        description.push_str(arg);
-                    }
+                    let description = args
+                        .map(|a| a.to_owned())
+                        .collect::<Vec<String>>()
+                        .join(" ");
                     if description.len() > 0 {
                         return Ok(Args::Save(Some(description)));
                     } else {

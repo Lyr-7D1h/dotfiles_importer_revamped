@@ -1,6 +1,5 @@
 use crate::Importer;
 use log::{debug, info};
-use regex::Regex;
 
 use crate::{BUFFER_SIZE, SOCKET_PATH};
 use std::os::unix::net::UnixListener;
@@ -134,6 +133,20 @@ fn get_response(request: &str, importer: &mut Importer) -> Result<String, String
             "restore" => {
                 if let Some(arg) = request.next() {
                     return handlers::restore(arg, importer);
+                }
+            }
+            "add" => {
+                if let Some(arg) = request.next() {
+                    return handlers::add(arg, importer);
+                }
+            }
+            "save" => {
+                if let Some(arg) = request.next() {
+                    let description =
+                        format!("{} {}", arg, request.collect::<Vec<&str>>().join(" "));
+                    return handlers::save(Some(&description), importer);
+                } else {
+                    return handlers::save(None, importer);
                 }
             }
             _ => return Err("Invalid command".into()),

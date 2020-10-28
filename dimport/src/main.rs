@@ -47,7 +47,10 @@ fn main() {
             write(&format!("restore {}", regex));
         }
         Args::Add(path) => {
-            write(&format!("add {}", path.to_str().unwrap()));
+            write(&format!(
+                "add {}",
+                path.canonicalize().unwrap().to_str().unwrap()
+            ));
         }
         Args::Save(description) => {
             if let Some(description) = description {

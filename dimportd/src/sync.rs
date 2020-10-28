@@ -14,7 +14,6 @@ impl Importer {
     /// Synchronize and notify if new changes and save to state
     pub fn sync_and_notify(&mut self) -> Result<(), Box<dyn Error>> {
         let changes = self.sync()?;
-        println!("{}", changes.len());
 
         if changes.len() > self.state.differences.len() {
             let mut body = format!("You have {} changed files.", changes.len());

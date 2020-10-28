@@ -1,27 +1,22 @@
 use std::{fs, path::Path};
 
 use git2::build::CheckoutBuilder;
-use log::debug;
+use log::info;
 use regex::Regex;
 
-use crate::{util::get_repository, Importer};
+use crate::{
+    util::{differences_to_string, repository_commit, repository_fetch, repository_push},
+    Importer,
+};
 
 pub fn status(importer: &Importer) -> Result<String, String> {
     let mut result = String::new();
 
     if importer.state.differences.len() > 0 {
         result.push_str("Changed Files\n");
-        result.push_str(
-            &importer
-                .state
-                .differences
-                .iter()
-                .map(|diff| format!("[{}] {}", diff.kind, diff.path))
-                .collect::<Vec<String>>()
-                .join("\n"),
-        );
-        result.push_str("\n");
+        result.push_str(&differences_to_string(&importer.state.differences));
         if importer.state.suggested_files.len() > 0 {
+            result.push_str("\n");
             result.push_str("\n");
         }
     }
@@ -88,7 +83,7 @@ pub fn set_repository(repo: &str, importer: &mut Importer) -> Result<String, Str
             return Err(e.to_string());
         }
     }
-    match get_repository(repo, test_path) {
+    match repository_fetch(repo, test_path) {
         Ok(_) => {
             // Reset home to how it was before
             if let Err(e) = importer.restore() {
@@ -192,4 +187,57 @@ pub fn restore(regex: &str, importer: &Importer) -> Result<String, String> {
         restore_file_paths.join("\n"),
         restore_file_paths.len(),
     ))
+}
+
+pub fn add(absolute_src_path: &str, importer: &Importer) -> Result<String, String> {
+    let home_path_string = importer.config.home.to_str().unwrap();
+    if !absolute_src_path.starts_with(home_path_string) {
+        return Err("Path is not in home folder".into());
+    }
+    let relative_path = absolute_src_path
+        .strip_prefix(&format!("{}{}", home_path_string, "/"))
+        .unwrap();
+    let repository_path = importer
+        .config
+        .repository
+        .workdir()
+        .unwrap()
+        .join(relative_path);
+
+    let absolute_src_path = Path::new(absolute_src_path);
+
+    if !absolute_src_path.exists() {
+        return Err(format!("Could not find {:?}", absolute_src_path));
+    }
+    if let Err(e) = fs::copy(&absolute_src_path, &repository_path) {
+        return Err(format!("Could not copy file: {}", e));
+    }
+    if let Err(e) = fs::remove_file(&absolute_src_path) {
+        return Err(format!("Could not remove source file: {}", e));
+    }
+    if let Err(e) = importer.link(relative_path) {
+        return Err(format!("Could not link file: {}", e));
+    }
+
+    Ok("Succesfully added path.".into())
+}
+
+pub fn save(description: Option<&str>, importer: &Importer) -> Result<String, String> {
+    let description = match description {
+        Some(description) => description.to_string(),
+        None => differences_to_string(&importer.state.differences),
+    };
+
+    if let Err(e) = repository_commit(&importer.config.repository, &description) {
+        return Err(format!("Could not commit files: {}", e));
+    }
+
+    info!("Commited");
+
+    if let Err(e) = repository_push(&importer.config.repository) {
+        return Err(format!("Could not push repository: {}", e));
+    }
+    info!("Pushed commit");
+
+    Ok("Succesfully saved.".into())
 }

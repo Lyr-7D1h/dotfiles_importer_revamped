@@ -1,4 +1,4 @@
-use crate::PRIVATE_KEY_PATH;
+use crate::{state::Difference, PRIVATE_KEY_PATH};
 use git2::Cred;
 use git2::RemoteCallbacks;
 use git2::Repository;
@@ -62,25 +62,49 @@ where
     Ok(())
 }
 
-pub fn get_repository(url: &str, path: &Path) -> Result<Repository, Box<dyn Error>> {
+pub fn repository_push(repository: &git2::Repository) -> Result<(), Box<dyn Error>> {
+    let mut remote = repository.find_remote("origin")?;
+    let mut po = git2::PushOptions::new();
+    let mut callbacks = get_callbacks();
+    callbacks.push_update_reference(|name, status| {
+        println!("{}, {:?}", name, status);
+        Ok(())
+    });
+    po.remote_callbacks(get_callbacks());
+    remote.push(&["refs/heads/master:refs/heads/master"], Some(&mut po))?;
+    Ok(())
+}
+pub fn repository_commit(
+    repository: &git2::Repository,
+    description: &str,
+) -> Result<(), Box<dyn Error>> {
+    let signature = get_signature()?;
+    let mut index = repository.index()?;
+    index.add_all(["."].iter(), git2::IndexAddOption::DEFAULT, None)?;
+    index.write()?;
+    let oid = index.write_tree()?;
+    let parent_commit = repository.head()?.peel_to_commit()?;
+    let tree = repository.find_tree(oid)?;
+
+    repository.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        description,
+        &tree,
+        &[&parent_commit],
+    )?;
+
+    Ok(())
+}
+pub fn repository_fetch(url: &str, path: &Path) -> Result<Repository, Box<dyn Error>> {
     match Repository::open(&path) {
         Ok(r) => Ok(r),
         Err(_) => {
             info!("Repository path does not exist cloning...");
 
-            let mut callbacks = RemoteCallbacks::new();
-            callbacks.credentials(|url, username_from_url, _allowed_types| {
-                debug!("Asking ssh credentials for: {:?}", url);
-                Cred::ssh_key(
-                    username_from_url.unwrap_or("git"),
-                    None,
-                    Path::new(PRIVATE_KEY_PATH),
-                    None,
-                )
-            });
-
             let mut fo = git2::FetchOptions::new();
-            fo.remote_callbacks(callbacks);
+            fo.remote_callbacks(get_callbacks());
 
             let mut builder = git2::build::RepoBuilder::new();
             builder.fetch_options(fo);
@@ -89,4 +113,38 @@ pub fn get_repository(url: &str, path: &Path) -> Result<Repository, Box<dyn Erro
             return Ok(repo);
         }
     }
+}
+
+pub fn differences_to_string(differences: &Vec<Difference>) -> String {
+    differences
+        .iter()
+        .map(|diff| format!("[{}] {}", diff.kind, diff.path))
+        .collect::<Vec<String>>()
+        .join("\n")
+}
+
+fn get_callbacks<'a>() -> RemoteCallbacks<'a> {
+    let mut callbacks = RemoteCallbacks::new();
+    callbacks.credentials(|url, username_from_url, _allowed_types| {
+        debug!("Asking ssh credentials for: {:?}", url);
+        Cred::ssh_key(
+            username_from_url.unwrap_or("git"),
+            None,
+            Path::new(PRIVATE_KEY_PATH),
+            None,
+        )
+    });
+    callbacks
+}
+fn get_signature<'a>() -> Result<git2::Signature<'a>, git2::Error> {
+    let config = git2::Config::open_default()?;
+
+    let name = config.get_entry("user.name")?;
+    let name = name.value().unwrap();
+    let email = config.get_entry("user.email")?;
+    let email = email.value().unwrap();
+
+    info!("Using name: {} email: {} for signature", name, email);
+
+    git2::Signature::now(&name, &email)
 }
