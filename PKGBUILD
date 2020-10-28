@@ -24,5 +24,4 @@ package() {
     install -D -m644 "$srcdir/../LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
     mkdir -p "$pkgdir/etc/dimport"
     mkdir -p "$pkgdir/var/lib/dimport"
-    # mkdir for config state repository and backup
 }
