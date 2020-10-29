@@ -1,4 +1,4 @@
-use log::info;
+use log::{debug, info};
 use notify_rust;
 use notify_rust::{Notification, NotificationHandle};
 use std::{error::Error, io};
@@ -31,7 +31,9 @@ pub struct Importer {
 impl Importer {
     pub fn new() -> Result<Importer, Box<dyn Error>> {
         let state = State::get()?;
+        debug!("Importer: Created state");
         let config = Config::from_settings()?;
+        debug!("Importer: Created config");
         Ok(Importer { state, config })
     }
 

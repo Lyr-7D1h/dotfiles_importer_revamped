@@ -34,7 +34,6 @@ impl Difference {
 #[derive(Serialize, Deserialize)]
 pub struct State {
     pub initialized: bool,
-    pub repository: String,
     pub differences: Vec<Difference>,
     pub mapped_files: Vec<String>,
     pub suggested_files: Vec<String>,
@@ -53,7 +52,6 @@ impl State {
                 File::create(STATE_PATH)?;
                 let default_state = State {
                     initialized: false,
-                    repository: String::new(),
                     differences: vec![],
                     mapped_files: vec![],
                     suggested_files: vec![],
