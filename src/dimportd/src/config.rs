@@ -2,13 +2,16 @@ use crate::util::repository_fetch;
 use crate::CONFIG_PATH;
 use crate::REPOSITORY_DIR;
 use git2::Repository;
-use log::info;
+use log::debug;
 use serde::{Deserialize, Serialize};
-use std::fs::{self, File};
 use std::io::BufReader;
 use std::path::Path;
 use std::path::PathBuf;
 use std::{env, error::Error};
+use std::{
+    fs::{self, File},
+    io,
+};
 
 pub struct Config {
     pub repository: Repository,
@@ -51,25 +54,28 @@ impl Config {
         let uconfig: UnserializedConfig = serde_json::from_reader(reader)?;
 
         let home_path = PathBuf::from(uconfig.home_path);
-        home_path.metadata()?;
+        home_path
+            .metadata()
+            .map_err(|e| io::Error::new(e.kind(), format!("Invalid Home Path: {}", e)))?;
 
         let private_key_path = PathBuf::from(uconfig.private_key_path);
-        private_key_path.metadata()?;
-
-        info!("Fetched config");
+        private_key_path
+            .metadata()
+            .map_err(|e| io::Error::new(e.kind(), format!("Invalid Private Key Path: {}", e)))?;
 
         let repository = repository_fetch(
             &uconfig.repository,
             Path::new(REPOSITORY_DIR),
             &private_key_path,
         )?;
+
         let ignore_files: Vec<PathBuf> = uconfig
             .ignore_files
             .iter()
             .map(|file| repository.workdir().unwrap().join(PathBuf::from(file)))
             .collect();
 
-        info!("Fetched repository");
+        debug!("Fetched repository");
 
         let config = Config {
             repository,
