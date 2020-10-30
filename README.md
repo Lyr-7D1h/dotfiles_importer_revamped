@@ -10,9 +10,22 @@ Otherwise you can add folders using the cli.
 
 ### Arch
 
+Working on AUR..
+
+### Manually
+
+Feel free to change `dimportd/lib.rs` and `dimportd/main.rs` static variables
+
 ```
-makepkg -si
+cd dimport && cargo build --release --locked
+cd ../dimportd && cargo build --release --locked
 ```
+
+You have the cli executable in `dimport/target/release/dimport`
+
+You have the service executable in `dimport/target/release/dimportd`
+
+You should run dimportd daemonized and use dimport for interacting with the deamonized executable
 
 ## Usage
 

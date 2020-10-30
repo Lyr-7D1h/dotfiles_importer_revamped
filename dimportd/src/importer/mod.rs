@@ -1,5 +1,5 @@
 use crate::Server;
-use log::{debug, info};
+use log::info;
 use notify_rust;
 use notify_rust::{Notification, NotificationHandle};
 use std::{error::Error, io};
