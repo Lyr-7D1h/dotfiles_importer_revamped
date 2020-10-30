@@ -5,7 +5,7 @@ use std::{env, process};
 mod args;
 use args::{Args, Ignore};
 
-static SOCKET_PATH: &str = "/tmp/dimportd.socket";
+static SOCKET_PATH: &str = env!("SOCKET_PATH");
 static BUFFER_SIZE: usize = 10000;
 
 fn main() {

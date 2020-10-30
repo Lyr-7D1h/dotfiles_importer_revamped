@@ -14,7 +14,7 @@ Working on AUR..
 
 ### Manually
 
-Feel free to change `dimportd/lib.rs` and `dimportd/main.rs` static variables
+See build.rs for variables you can pass while building
 
 ```
 cd dimport && cargo build --release --locked
