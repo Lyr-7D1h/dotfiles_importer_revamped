@@ -4,6 +4,7 @@ use crate::REPOSITORY_DIR;
 use git2::Repository;
 use log::debug;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::io::BufReader;
 use std::path::Path;
 use std::path::PathBuf;
@@ -85,6 +86,25 @@ impl Config {
         };
 
         Ok(config)
+    }
+
+    /// Only when config is broken, there is no proper validation
+    pub fn write(property: &str, value: &str) -> Result<(), Box<dyn Error>> {
+        let config_file = File::open(CONFIG_PATH)?;
+        let reader = BufReader::new(&config_file);
+        let mut old_data: Value = serde_json::from_reader(reader)?;
+        old_data[property] = Value::String(value.to_string());
+        let new_data = serde_json::to_vec_pretty(&old_data)?;
+        fs::write(CONFIG_PATH, new_data)?;
+        Ok(())
+    }
+
+    pub fn show_raw() -> Result<String, Box<dyn Error>> {
+        let config_file = File::open(CONFIG_PATH)?;
+        let reader = BufReader::new(&config_file);
+        let old_data: Value = serde_json::from_reader(reader)?;
+        let pretty_string = serde_json::to_string(&old_data)?;
+        Ok(pretty_string)
     }
 
     pub fn set_home(&mut self, home: &str) -> Result<(), Box<dyn Error>> {

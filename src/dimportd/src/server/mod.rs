@@ -1,5 +1,6 @@
-use crate::Importer;
-use log::{debug, info};
+use crate::{importer::config::Config, Importer};
+use log::{debug, error, info};
+use std::error::Error;
 
 use crate::{BUFFER_SIZE, SOCKET_PATH};
 use std::os::unix::net::UnixListener;
@@ -13,6 +14,14 @@ fn sleep() {
     thread::sleep(::std::time::Duration::from_millis(100))
 }
 
+// TODO: Should probably make my own error type
+fn make_error(error: Box<dyn Error>, description: &str) -> Box<io::Error> {
+    Box::new(io::Error::new(
+        io::ErrorKind::Other,
+        format!("{}: {}", description, error),
+    ))
+}
+
 pub struct Server {
     listener: UnixListener,
 }
@@ -22,6 +31,7 @@ impl Server {
         let listener = match UnixListener::bind(SOCKET_PATH) {
             Ok(listener) => listener,
             Err(_) => {
+                debug!("Could not create listener removing and trying again");
                 fs::remove_file(SOCKET_PATH)?;
                 UnixListener::bind(SOCKET_PATH)?
             }
@@ -36,6 +46,39 @@ impl Server {
         Ok(Server { listener: listener })
     }
 
+    /// Little wrapper around importer listen so you can still send messages without a valid importer
+    pub fn listen(&self) -> Result<(), Box<dyn Error>> {
+        match Config::from_settings() {
+            Ok(config) => {
+                let mut importer = match Importer::from_config(config) {
+                    Ok(importer) => importer,
+                    Err(e) => {
+                        return Err(make_error(e, "Could not create importer"));
+                    }
+                };
+                if let Err(e) = importer.setup() {
+                    return Err(make_error(e, "Setup failed"));
+                }
+
+                if let Err(e) = importer.listen() {
+                    return Err(make_error(e, "Could not sync"));
+                }
+            }
+            Err(e) => {
+                error!("Could not create config: {}", e);
+                loop {
+                    if let Ok((stream, _)) = self.listener.accept() {
+                        check_messages(stream, |request| get_response_importless(request));
+                        // try again
+                        return self.listen();
+                    }
+                    sleep();
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// Will listen for messages for 300+ seconds and will then return
     pub fn check_messages_for_300(&self, importer: &mut Importer) -> io::Result<()> {
         let mut iter = 0;
@@ -45,10 +88,7 @@ impl Server {
             }
 
             if let Ok((stream, _)) = self.listener.accept() {
-                debug!("New connection");
-                // let importer = Mutex::new(importer);
-                check_messages(stream, importer);
-                // });
+                check_messages(stream, |request| get_response(request, importer));
             }
 
             iter += 1;
@@ -57,7 +97,10 @@ impl Server {
     }
 }
 
-fn check_messages(mut stream: UnixStream, importer: &mut Importer) {
+fn check_messages<F>(mut stream: UnixStream, op: F)
+where
+    F: FnOnce(&str) -> Result<String, String>,
+{
     let mut buffer = vec![0; BUFFER_SIZE];
     stream
         .read_exact(&mut buffer)
@@ -67,7 +110,7 @@ fn check_messages(mut stream: UnixStream, importer: &mut Importer) {
     let request = request.trim_end_matches("\u{0}");
     info!("Receive from cli: {}", request);
 
-    let response = match get_response(request, importer) {
+    let response = match op(request) {
         Ok(pos_res) => {
             info!("Ok Response: {}", pos_res);
             format!("O {}", pos_res)
@@ -90,7 +133,52 @@ fn raw(response: &str) -> Vec<u8> {
     response.resize(BUFFER_SIZE, 0);
     response
 }
-
+fn get_response_importless(request: &str) -> Result<String, String> {
+    let mut request = request.split(" ");
+    match request.next() {
+        Some(command) => {
+            match command {
+                "config" => {
+                    match Config::show_raw() {
+                        Ok(config) => return Ok(config),
+                        Err(e) => return Err(format!("Could not fetch config: {}", e))
+                    }
+                },
+                "set" => {
+                    if let Some(arg) = request.next() {
+                        if arg.eq("repo") {
+                            if let Some(repo) = request.next() {
+                                if let Err(e) = Config::write("repository", repo) {
+                                    return Err(format!("Could not write home path: {}", e));
+                                }
+                            }
+                        } else if arg.eq("home") {
+                            if let Some(path) = request.next() {
+                                if let Err(e) = Config::write("home_path", path) {
+                                    return Err(format!("Could not write home path: {}", e));
+                                }
+                            }
+                        } else if arg.eq("private_key") {
+                            if let Some(path) = request.next() {
+                                if let Err(e) = Config::write("private_key_path", path) {
+                                    return Err(format!("Could not write home path: {}", e));
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => {
+                    return Err(
+                        "Your config is invalid. See the daemon logs and set the correct values. You can also manually edit the config at `/etc/dimport/config.json`"
+                            .into(),
+                    )
+                }
+            };
+            Ok("Succesfully Changed".into())
+        }
+        None => return Err("Invalid command".into()),
+    }
+}
 fn get_response(request: &str, importer: &mut Importer) -> Result<String, String> {
     let mut request = request.split(" ");
 

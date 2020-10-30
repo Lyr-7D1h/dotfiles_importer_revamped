@@ -1,23 +1,17 @@
 use log::error;
 use std::process;
 
-use dimportd::Importer;
+use dimportd::Server;
 
 fn main() {
     env_logger::init();
 
-    let mut importer = Importer::new().unwrap_or_else(|e| {
-        error!("Could not create importer: {}", e);
+    let server = Server::new().unwrap_or_else(|e| {
+        error!("Could not create server: {}", e);
         process::exit(1)
     });
-
-    importer.setup().unwrap_or_else(|e| {
-        error!("Setup failed: {}", e);
+    if let Err(e) = server.listen() {
+        error!("{}", e);
         process::exit(1)
-    });
-
-    importer.listen().unwrap_or_else(|e| {
-        error!("Could not sync: {}", e);
-        process::exit(1)
-    })
+    }
 }

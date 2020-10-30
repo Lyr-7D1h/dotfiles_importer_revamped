@@ -1,4 +1,4 @@
-use crate::state::Difference;
+use crate::importer::state::Difference;
 use git2::Cred;
 use git2::RemoteCallbacks;
 use git2::Repository;

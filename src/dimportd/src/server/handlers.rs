@@ -1,13 +1,13 @@
+use crate::util::repository_commit;
+use crate::util::repository_fetch;
+use crate::util::{differences_to_string, repository_push};
 use std::{fs, path::Path};
 
 use git2::build::CheckoutBuilder;
 use log::info;
 use regex::Regex;
 
-use crate::{
-    util::{differences_to_string, repository_commit, repository_fetch, repository_push},
-    Importer,
-};
+use crate::Importer;
 
 pub fn status(importer: &Importer) -> Result<String, String> {
     let mut result = String::new();

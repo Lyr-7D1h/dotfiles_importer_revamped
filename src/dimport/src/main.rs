@@ -5,7 +5,7 @@ use std::{env, process};
 mod args;
 use args::{Args, Ignore};
 
-static SOCKET_PATH: &str = "/run/dimportd.socket";
+static SOCKET_PATH: &str = "/tmp/dimportd.socket";
 static BUFFER_SIZE: usize = 10000;
 
 fn main() {
@@ -15,7 +15,7 @@ fn main() {
     });
 
     let mut stream = UnixStream::connect(SOCKET_PATH).unwrap_or_else(|e| {
-        eprintln!("Could not connect to the daemon: {}", e);
+        eprintln!("Could not connect to the daemon: {} \n\nmake sure it is running `systemctl status dimportd.service`", e);
         process::exit(1)
     });
 

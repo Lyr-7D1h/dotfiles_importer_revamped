@@ -1,14 +1,12 @@
+use crate::importer::state::Difference;
 use std::error::Error;
 use std::path::Path;
 use std::{fs, io};
 
 use log::info;
 
+use crate::util::{find_all_files_symlink, find_equal_files};
 use crate::Importer;
-use crate::{
-    state::Difference,
-    util::{find_all_files_symlink, find_equal_files},
-};
 
 impl Importer {
     /// Synchronize and notify if new changes and save to state
