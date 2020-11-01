@@ -36,8 +36,8 @@ impl Config {
             Err(_) => {
                 let default_config = UnserializedConfig {
                     repository: String::new(),
-                    home_path: env::var("HOME")?,
-                    private_key_path: format!("{}/.ssh/id_ecdsa", env::var("HOME")?),
+                    home_path: String::new(),
+                    private_key_path: String::new(),
                     ignore_files: vec![
                         "README.md".to_string(),
                         ".gitignore".to_string(),
@@ -57,12 +57,12 @@ impl Config {
         let home_path = PathBuf::from(uconfig.home_path);
         home_path
             .metadata()
-            .map_err(|e| io::Error::new(e.kind(), format!("Invalid Home Path: {}", e)))?;
+            .map_err(|e| return io::Error::new(e.kind(), format!("Invalid Home Path: {}", e)))?;
 
         let private_key_path = PathBuf::from(uconfig.private_key_path);
-        private_key_path
-            .metadata()
-            .map_err(|e| io::Error::new(e.kind(), format!("Invalid Private Key Path: {}", e)))?;
+        private_key_path.metadata().map_err(|e| {
+            return io::Error::new(e.kind(), format!("Invalid Private Key Path: {}", e));
+        })?;
 
         let repository = repository_fetch(
             &uconfig.repository,

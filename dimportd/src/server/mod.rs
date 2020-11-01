@@ -1,6 +1,8 @@
+use crate::CONFIG_PATH;
 use crate::{importer::config::Config, Importer};
 use log::{debug, error, info};
 use std::error::Error;
+use std::path::Path;
 
 use crate::{BUFFER_SIZE, SOCKET_PATH};
 use std::os::unix::net::UnixListener;
@@ -133,11 +135,35 @@ fn raw(response: &str) -> Vec<u8> {
     response.resize(BUFFER_SIZE, 0);
     response
 }
-fn get_response_importless(request: &str) -> Result<String, String> {
-    let mut request = request.split(" ");
+fn get_response_importless(request_raw: &str) -> Result<String, String> {
+    let mut request = request_raw.split(" ");
     match request.next() {
         Some(command) => {
             match command {
+                "init" => {
+                    if let Some(home_path) = request.next() {
+                        if let Err(e) = Config::write("home_path", home_path) {
+                            return Err(format!("Could not write home path: {}", e))
+                        };
+                        if let Some(repository) = request.next() {
+                            if let Err(e) = Config::write("repository", repository) {
+                                return Err(format!("Could not write repository: {}", e))
+                            }
+                        }
+                        let mut private_key_path = Path::new(home_path).join(".ssh/id_ecdsa");
+                        if !private_key_path.exists() {
+                            private_key_path = Path::new(home_path).join(".ssh/id_rsa");
+                            if !private_key_path.exists() {
+                                return Err("Could not find valid ssh key".into());
+                            }
+                        }
+                        if let Err(e) = Config::write("private_key_path", private_key_path.to_str().unwrap()) {
+                            return Err(format!("Could not write private key path: {}", e))
+                        }
+
+                        return Ok("Succefully written to config file".into())
+                    }
+                }
                 "config" => {
                     match Config::show_raw() {
                         Ok(config) => return Ok(config),
@@ -166,17 +192,18 @@ fn get_response_importless(request: &str) -> Result<String, String> {
                             }
                         }
                     }
+                    return Ok("Succesfully Changed".into())
                 }
                 _ => {
                     return Err(
-                        "Your config is invalid. See the daemon logs and set the correct values. You can also manually edit the config at `/etc/dimport/config.json`"
+                        format!("Dimport is unitialized: Your config is invalid.\n\nSee the daemon logs and set the correct values using the commands. \nYou can also manually edit the config at `{}`", CONFIG_PATH)
                             .into(),
                     )
                 }
             };
-            Ok("Succesfully Changed".into())
+            return Err(format!("Something went wrong received: {}", request_raw));
         }
-        None => return Err("Invalid command".into()),
+        None => return Err("Invalid Command".into()),
     }
 }
 fn get_response(request: &str, importer: &mut Importer) -> Result<String, String> {

@@ -100,8 +100,16 @@ pub fn repository_fetch(
     path: &Path,
     private_key_path: &Path,
 ) -> Result<Repository, Box<dyn Error>> {
-    match Repository::open(&path) {
-        Ok(r) => Ok(r),
+    if url.len() == 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "Repository url can not be empty",
+        )
+        .into());
+    }
+
+    let repo = match Repository::open(&path) {
+        Ok(r) => r,
         Err(_) => {
             info!("Repository path does not exist cloning...");
 
@@ -114,7 +122,13 @@ pub fn repository_fetch(
             let repo = builder.clone(&url, &path)?;
             return Ok(repo);
         }
+    };
+    // if current repo differs remove and fetch again
+    if repo.find_remote("origin")?.url().unwrap() != url {
+        fs::remove_dir_all(&path)?;
+        return repository_fetch(url, path, private_key_path);
     }
+    Ok(repo)
 }
 
 pub fn differences_to_string(differences: &Vec<Difference>) -> String {

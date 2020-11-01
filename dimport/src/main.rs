@@ -25,6 +25,17 @@ fn main() {
     };
 
     match args {
+        Args::Init((path, repo)) => {
+            let repository = match repo {
+                Some(repo) => repo,
+                None => "".to_string(),
+            };
+            write(&format!(
+                "init {} {}",
+                path.canonicalize().unwrap().to_str().unwrap(),
+                repository
+            ))
+        }
         Args::Status => {
             write("status");
         }

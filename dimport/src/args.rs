@@ -1,6 +1,6 @@
 use regex::Regex;
-use std::error::Error;
 use std::path::PathBuf;
+use std::{env, error::Error};
 
 pub enum Ignore {
     All,
@@ -13,6 +13,7 @@ pub enum Set {
 }
 
 pub enum Args {
+    Init((PathBuf, Option<String>)),
     Status,
     Backup,
     Config,
@@ -33,6 +34,20 @@ impl Args {
 
         if let Some(command) = args.next() {
             match command.as_str() {
+                "init" => {
+                    let home_path = match env::var("HOME") {
+                        Ok(home) => PathBuf::from(home),
+                        Err(_) => return Err("Could not fetch HOME env variable".into()),
+                    };
+                    if !home_path.is_absolute() {
+                        return Err("Home path is not absolute".into());
+                    }
+                    let repository = match args.next() {
+                        Some(repo) => Some(repo.to_owned()),
+                        None => None,
+                    };
+                    return Ok(Args::Init((home_path, repository)));
+                }
                 "status" => return Ok(Args::Status),
                 "backup" => return Ok(Args::Backup),
                 "config" => return Ok(Args::Config),
@@ -111,6 +126,11 @@ impl Args {
 Lyr-7D1h <lyr-7d1h@pm.me>
 Usage:
     dimport <command> [<args>]
+
+Unitialized state commands:
+    init [<url>]                                Load config.json with sane defaults and optionally give the repository aswell (will only work when no config setup)
+    set [repo|home|private_key] [<url>|<path>]  Configure the dotfiles importer
+    config                                      Return current configuration
 
 Commands:
     status                                      Show changed files and show suggested files.
