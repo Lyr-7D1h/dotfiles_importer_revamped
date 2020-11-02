@@ -143,11 +143,11 @@ fn get_response_importless(request_raw: &str) -> Result<String, String> {
                 "init" => {
                     if let Some(home_path) = request.next() {
                         if let Err(e) = Config::write("home_path", home_path) {
-                            return Err(format!("Could not write home path: {}", e))
+                            return Err(format!("Could not write home path: {}", e));
                         };
                         if let Some(repository) = request.next() {
                             if let Err(e) = Config::write("repository", repository) {
-                                return Err(format!("Could not write repository: {}", e))
+                                return Err(format!("Could not write repository: {}", e));
                             }
                         }
                         let mut private_key_path = Path::new(home_path).join(".ssh/id_ecdsa");
@@ -157,18 +157,16 @@ fn get_response_importless(request_raw: &str) -> Result<String, String> {
                                 return Err("Could not find valid ssh key".into());
                             }
                         }
-                        if let Err(e) = Config::write("private_key_path", private_key_path.to_str().unwrap()) {
-                            return Err(format!("Could not write private key path: {}", e))
+                        if let Err(e) =
+                            Config::write("private_key_path", private_key_path.to_str().unwrap())
+                        {
+                            return Err(format!("Could not write private key path: {}", e));
                         }
-
-                        return Ok("Succefully written to config file".into())
                     }
                 }
-                "config" => {
-                    match Config::show_raw() {
-                        Ok(config) => return Ok(config),
-                        Err(e) => return Err(format!("Could not fetch config: {}", e))
-                    }
+                "config" => match Config::show_raw() {
+                    Ok(config) => return Ok(config),
+                    Err(e) => return Err(format!("Could not fetch config: {}", e)),
                 },
                 "set" => {
                     if let Some(arg) = request.next() {
@@ -192,16 +190,27 @@ fn get_response_importless(request_raw: &str) -> Result<String, String> {
                             }
                         }
                     }
-                    return Ok("Succesfully Changed".into())
                 }
                 _ => {
+                    let config_err = match Config::from_settings() {
+                        Ok(_) => return Ok("Valid config. Setting up..".to_string()),
+                        Err(e) => e,
+                    };
+
                     return Err(
-                        format!("Dimport is unitialized: Your config is invalid.\n\nSee the daemon logs and set the correct values using the commands. \nYou can also manually edit the config at `{}`", CONFIG_PATH)
-                            .into(),
-                    )
+                        format!("Dimport is unitialized\nInvalid Config: {}\n\nSee the daemon logs and set the correct values using the commands. \nYou can also manually edit the config at although this is not recommended. `{}`", config_err, CONFIG_PATH)
+                    );
                 }
             };
-            return Err(format!("Something went wrong received: {}", request_raw));
+            let config_message;
+            match Config::from_settings() {
+                Ok(_) => config_message = "Valid config. Setting up..".to_string(),
+                Err(e) => config_message = format!("Invalid config: {}", e),
+            }
+            return Ok(format!(
+                "Succesfully written to config file.\n\n{}",
+                config_message
+            ));
         }
         None => return Err("Invalid Command".into()),
     }
