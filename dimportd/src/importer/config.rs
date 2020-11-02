@@ -5,10 +5,10 @@ use git2::Repository;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::error::Error;
 use std::io::BufReader;
 use std::path::Path;
 use std::path::PathBuf;
-use std::{env, error::Error};
 use std::{
     fs::{self, File},
     io,

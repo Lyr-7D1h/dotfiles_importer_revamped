@@ -1,4 +1,5 @@
-use crate::util::find_all_files_symlink;
+use crate::util::find_equal_dir;
+use crate::REPOSITORY_DIR;
 use log::{debug, info};
 
 use crate::{util::find_equal_files, Importer, BACKUP_DIR};
@@ -114,15 +115,21 @@ impl Importer {
         self.state.mapped_files = vec![];
         self.state.save()?;
 
-        let mut op = |file: &Path| {
-            let file = file.to_str().unwrap().to_string();
-            debug!("Adding {} to Mapped Files", file);
-            self.state.mapped_files.push(file);
-            self.state.save()?;
+        let mut op = |dir: &Path| {
+            for entry in fs::read_dir(dir)? {
+                let path = entry?.path();
+                if path.is_file() {
+                    let path = path.to_str().unwrap().to_string();
+                    debug!("Adding {} to Suggested Files", path);
+                    self.state.mapped_files.push(path);
+                }
+            }
             Ok(())
         };
 
-        find_all_files_symlink(&home, &mut op)
+        find_equal_dir(Path::new(REPOSITORY_DIR), &home, Path::new(""), &mut op)?;
+        self.state.save()?;
+        Ok(())
     }
 
     fn recurse_with_config<F>(&self, mut op: F) -> Result<(), Error>

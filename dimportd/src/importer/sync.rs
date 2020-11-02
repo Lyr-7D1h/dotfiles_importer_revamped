@@ -1,11 +1,11 @@
-use crate::importer::state::Difference;
+use crate::{importer::state::Difference, util::find_equal_dir, REPOSITORY_DIR};
 use std::error::Error;
 use std::path::Path;
 use std::{fs, io};
 
-use log::info;
+use log::{debug, info};
 
-use crate::util::{find_all_files_symlink, find_equal_files};
+use crate::util::find_equal_files;
 use crate::Importer;
 
 impl Importer {
@@ -73,18 +73,25 @@ impl Importer {
     fn update_suggested(&mut self) -> Result<(), io::Error> {
         let home = self.config.home_path.clone();
 
-        let mut op = |file: &Path| {
-            let file = file.to_str().unwrap().to_string();
-            if !self.state.suggested_files.contains(&file)
-                && !self.state.mapped_files.contains(&file)
-            {
-                info!("Adding {} to Suggested Files", file);
-                self.state.suggested_files.push(file);
-                self.state.save()?;
+        let mut op = |dir: &Path| {
+            for entry in fs::read_dir(dir)? {
+                let path = entry?.path();
+                if path.is_file() {
+                    let path = path.to_str().unwrap().to_string();
+                    if !self.state.suggested_files.contains(&path)
+                        && !self.state.mapped_files.contains(&path)
+                    {
+                        debug!("Adding {} to Suggested Files", path);
+                        self.state.suggested_files.push(path);
+                    }
+                }
             }
             Ok(())
         };
 
-        find_all_files_symlink(&home, &mut op)
+        // find_all_files_symlink(&home, &mut op)?;
+        find_equal_dir(Path::new(REPOSITORY_DIR), &home, Path::new(""), &mut op)?;
+        self.state.save()?;
+        Ok(())
     }
 }

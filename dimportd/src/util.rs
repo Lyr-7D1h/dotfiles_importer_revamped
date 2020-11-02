@@ -43,8 +43,40 @@ where
     Ok(())
 }
 
-/// Find all files without following symlinks
-pub fn find_all_files_symlink<F>(path: &Path, op: &mut F) -> io::Result<()>
+/// Find all directories that are equal to src. Returns dest dirs.
+pub fn find_equal_dir<F>(
+    src_path: &Path,
+    dest_path: &Path,
+    relative_path: &Path,
+    op: &mut F,
+) -> io::Result<()>
+where
+    F: FnMut(&Path) -> io::Result<()>,
+{
+    let src_cur = src_path.join(relative_path);
+
+    if src_cur.is_dir() {
+        let dest_cur = dest_path.join(relative_path);
+        // skip if does not exist
+        if !dest_cur.exists() {
+            return Ok(());
+        }
+        op(&dest_cur)?;
+        for entry in fs::read_dir(src_cur)? {
+            let entry = entry?;
+            let src_entry = entry.path();
+
+            if src_entry.is_dir() {
+                let current_relative_path = src_entry.strip_prefix(src_path).unwrap();
+                find_equal_dir(src_path, dest_path, current_relative_path, op)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Find all files if directly in one of the same folders of src_path without following symlinks
+pub fn _find_all_files_symlink<F>(path: &Path, op: &mut F) -> io::Result<()>
 where
     F: FnMut(&Path) -> io::Result<()>,
 {
@@ -53,7 +85,7 @@ where
             let path = entry?.path();
 
             if path.is_dir() {
-                find_all_files_symlink(&path, op)?;
+                _find_all_files_symlink(&path, op)?;
             } else if path.symlink_metadata()?.is_file() {
                 op(&path)?;
             }
