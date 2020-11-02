@@ -39,9 +39,6 @@ fn main() {
         Args::Status => {
             write("status");
         }
-        Args::Backup => {
-            write("backup");
-        }
         Args::Config => write("config"),
         Args::Sync => write("sync"),
         Args::Set(set) => match set {

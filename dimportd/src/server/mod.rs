@@ -223,9 +223,6 @@ fn get_response(request: &str, importer: &mut Importer) -> Result<String, String
             "status" => {
                 return handlers::status(importer);
             }
-            "backup" => {
-                return handlers::backup(importer);
-            }
             "config" => {
                 return handlers::config(importer);
             }

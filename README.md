@@ -41,16 +41,20 @@ Lyr-7D1h <lyr-7d1h@pm.me>
 Usage:
     dimport <command> [<args>]
 
+Unitialized state commands:
+    init [<url>]                                Load config.json with sane defaults and optionally give the repository aswell (will only work when no config setup)
+    set [repo|home|private_key] [<url>|<path>]  Configure the dotfiles importer
+    config                                      Return current configuration
+
 Commands:
-    status                          Show changed files and show suggested files.
-    backup                          Backup current conflicting dotfiles, will override if there already is an backup
-    config                          Return current configuration
-    sync                            Synchronize files right now (otherwise being run every ~5 min)
-    set [repo|home] [<url>|<path>]  Configure the dotfiles importer
-    ignore [all|<regex>]            If you want to ignore all suggested files or only by regex
-    restore <regex>                 Restore a removed or changed file
-    add <path>                      Add a file or directory to the repository
-    save [<message>]                Save current settings and give an optional description of changed files
+    status                                      Show changed files and show suggested files.
+    config                                      Return current configuration
+    sync                                        Synchronize files right now (otherwise being run every ~5 min)
+    set [repo|home|private_key] [<url>|<path>]  Configure the dotfiles importer
+    ignore [all|<regex>]                        If you want to ignore all suggested files or only by regex
+    restore <regex>                             Restore a removed or changed file
+    add <path>                                  Add a file or directory to the repository
+    save [<message>]                            Save current settings and give an optional description of changed files
 ```
 
 ## Notes

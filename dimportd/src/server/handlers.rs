@@ -39,13 +39,6 @@ pub fn status(importer: &Importer) -> Result<String, String> {
     Ok(result)
 }
 
-pub fn backup(importer: &Importer) -> Result<String, String> {
-    if let Err(e) = importer.backup() {
-        return Err(format!("Could not backup: {}", e));
-    }
-    Ok("Backup succeeded".into())
-}
-
 pub fn config(importer: &Importer) -> Result<String, String> {
     if let Ok(remote) = importer.config.repository.find_remote("origin") {
         if let Some(url) = remote.url() {
