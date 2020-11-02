@@ -198,7 +198,7 @@ fn get_response_importless(request_raw: &str) -> Result<String, String> {
                     };
 
                     return Err(
-                        format!("Dimport is unitialized\nInvalid Config: {}\n\nSee the daemon logs and set the correct values using the commands. \nYou can also manually edit the config at although this is not recommended. `{}`", config_err, CONFIG_PATH)
+                        format!("Dimport is unitialized\nInvalid Config: {}\n\nSee the daemon logs and set the correct values using the commands. \nYou can also manually edit the config at `{}` although this is not recommended.", config_err, CONFIG_PATH)
                     );
                 }
             };
