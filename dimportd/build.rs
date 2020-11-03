@@ -7,8 +7,8 @@ fn main() {
     println!("cargo:rustc-env=CONFIG_PATH={}", config_path);
     let state_path = env::var("STATE_PATH").unwrap_or("../state.json".into());
     println!("cargo:rustc-env=STATE_PATH={}", state_path);
-    let repostiory_dir = env::var("REPOSITORY_DIR").unwrap_or("../repository".into());
-    println!("cargo:rustc-env=REPOSITORY_DIR={}", repostiory_dir);
+    let repository_dir = env::var("REPOSITORY_DIR").unwrap_or("../repository".into());
+    println!("cargo:rustc-env=REPOSITORY_DIR={}", repository_dir);
     let backup_dir = env::var("BACKUP_DIR").unwrap_or("../backup".into());
     println!("cargo:rustc-env=BACKUP_DIR={}", backup_dir);
 }

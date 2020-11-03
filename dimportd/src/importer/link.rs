@@ -120,7 +120,7 @@ impl Importer {
                 let path = entry?.path();
                 if path.is_file() {
                     let path = path.to_str().unwrap().to_string();
-                    debug!("Adding {} to Suggested Files", path);
+                    debug!("Adding {} to Mapped Files", path);
                     self.state.mapped_files.push(path);
                 }
             }
