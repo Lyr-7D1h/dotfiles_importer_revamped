@@ -1,5 +1,7 @@
 # Dotfiles Importer
 
+![aur image](https://img.shields.io/aur/version/dimport)
+
 Give a repository and sync all dotfiles.
 
 It will watch for changes and ask if you want to add files to your dotfiles when directly added to one of the folders.
@@ -10,7 +12,9 @@ Otherwise you can add folders using the cli.
 
 ### Arch
 
-Working on AUR..
+```
+yay -S dimport
+```
 
 ### Manually
 
@@ -25,7 +29,9 @@ You have the cli executable in `dimport/target/release/dimport`
 
 You have the service executable in `dimport/target/release/dimportd`
 
-You should run dimportd daemonized and use dimport for interacting with the deamonized executable
+You should run dimportd daemonized and use dimport for interacting with the deamonized executable.
+
+Use [arch repository](https://aur.archlinux.org/cgit/aur.git/tree/?h=dimport) for insipration.
 
 ## Usage
 
