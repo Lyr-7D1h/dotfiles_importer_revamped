@@ -15,7 +15,10 @@ fn main() {
     });
 
     let mut stream = UnixStream::connect(SOCKET_PATH).unwrap_or_else(|e| {
-        eprintln!("Could not connect to the daemon: {} \n\nmake sure it is running `systemctl status dimportd.service`", e);
+        eprintln!(
+            "Could not connect to the daemon: {} \n\nmake sure dimportd is running.",
+            e
+        );
         process::exit(1)
     });
 
