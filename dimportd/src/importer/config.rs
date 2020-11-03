@@ -31,6 +31,9 @@ struct UnserializedConfig {
 
 impl Config {
     pub fn from_settings() -> Result<Config, Box<dyn Error>> {
+        if let Some(dir_path) = Path::new(CONFIG_PATH).parent() {
+            fs::create_dir_all(dir_path)?;
+        }
         let file = match File::open(CONFIG_PATH) {
             Ok(file) => file,
             Err(_) => {
@@ -63,6 +66,8 @@ impl Config {
         private_key_path.metadata().map_err(|e| {
             return io::Error::new(e.kind(), format!("Invalid Private Key Path: {}", e));
         })?;
+
+        fs::create_dir_all(REPOSITORY_DIR)?;
 
         let repository = repository_fetch(
             &uconfig.repository,

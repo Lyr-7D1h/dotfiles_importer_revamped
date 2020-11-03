@@ -9,8 +9,6 @@ pub use importer::Importer;
 pub const BUFFER_SIZE: usize = 10000;
 
 pub const SOCKET_PATH: &str = env!("SOCKET_PATH");
-// pub const SOCKET_PATH: &str = "/tmp/dimportd.socket";
-
 pub const CONFIG_PATH: &str = env!("CONFIG_PATH");
 pub const STATE_PATH: &str = env!("STATE_PATH");
 pub const REPOSITORY_DIR: &str = env!("REPOSITORY_DIR");

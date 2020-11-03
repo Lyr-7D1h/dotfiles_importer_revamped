@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fs;
 use std::io;
+use std::path::Path;
 use std::{fs::File, io::BufReader};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -42,6 +43,9 @@ pub struct State {
 impl State {
     /// Load from .state.json or create if does not exist
     pub fn get() -> Result<State, Box<dyn Error>> {
+        if let Some(dir_path) = Path::new(STATE_PATH).parent() {
+            fs::create_dir_all(dir_path)?;
+        }
         match File::open(STATE_PATH) {
             Ok(file) => {
                 let reader = BufReader::new(file);
