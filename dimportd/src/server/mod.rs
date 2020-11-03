@@ -2,6 +2,7 @@ use crate::CONFIG_PATH;
 use crate::{importer::config::Config, Importer};
 use log::{debug, error, info};
 use std::error::Error;
+use std::os::unix::prelude::PermissionsExt;
 use std::path::Path;
 
 use crate::{BUFFER_SIZE, SOCKET_PATH};
@@ -38,6 +39,8 @@ impl Server {
                 UnixListener::bind(SOCKET_PATH)?
             }
         };
+
+        fs::set_permissions(SOCKET_PATH, PermissionsExt::from_mode(0o766))?;
 
         listener
             .set_nonblocking(true)
