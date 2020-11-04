@@ -67,12 +67,14 @@ impl Importer {
                 new_differences.push(Difference::from_status_entry(status))
             }
         }
+
+        self.state.differences = differences;
+        self.state.picked_differences = picked_differences;
+
         let has_changes = new_differences.len() > 0;
         if has_changes {
             self.state.differences.append(&mut new_differences);
         }
-        self.state.differences = differences;
-        self.state.picked_differences = picked_differences;
         self.state.save()?;
 
         Ok(has_changes)
