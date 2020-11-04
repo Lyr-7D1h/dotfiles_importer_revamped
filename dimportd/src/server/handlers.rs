@@ -164,6 +164,9 @@ pub fn ignore_regex(regex: &str, importer: &mut Importer) -> Result<String, Stri
 
     let removed_amount = removed_suggested.len();
     importer.state.mapped_files.append(&mut removed_suggested);
+    if let Err(e) = importer.state.save() {
+        return Err(format!("Could not save state: {}", e));
+    }
 
     Ok(format!("Ignored {} suggested files", removed_amount))
 }
@@ -202,12 +205,12 @@ pub fn restore(regex: &str, importer: &Importer) -> Result<String, String> {
     ))
 }
 
-pub fn add(absolute_src_path: &str, importer: &Importer) -> Result<String, String> {
+pub fn add(absolute_src_path_string: &str, importer: &mut Importer) -> Result<String, String> {
     let home_path_string = importer.config.home_path.to_str().unwrap();
-    if !absolute_src_path.starts_with(home_path_string) {
+    if !absolute_src_path_string.starts_with(home_path_string) {
         return Err("Path is not in home folder".into());
     }
-    let relative_path = absolute_src_path
+    let relative_path = absolute_src_path_string
         .strip_prefix(&format!("{}{}", home_path_string, "/"))
         .unwrap();
     let repository_path = importer
@@ -217,7 +220,7 @@ pub fn add(absolute_src_path: &str, importer: &Importer) -> Result<String, Strin
         .unwrap()
         .join(relative_path);
 
-    let absolute_src_path = Path::new(absolute_src_path);
+    let absolute_src_path = Path::new(absolute_src_path_string);
 
     if !absolute_src_path.exists() {
         return Err(format!("Could not find {:?}", absolute_src_path));
@@ -230,6 +233,23 @@ pub fn add(absolute_src_path: &str, importer: &Importer) -> Result<String, Strin
     }
     if let Err(e) = importer.link(relative_path) {
         return Err(format!("Could not link file: {}", e));
+    }
+
+    // Remove from suggested if it exists
+    let mut removed_suggested = vec![];
+    importer.state.suggested_files.retain(|file_path| {
+        if file_path == absolute_src_path_string {
+            removed_suggested.push(file_path.clone());
+            false
+        } else {
+            true
+        }
+    });
+
+    importer.state.mapped_files.append(&mut removed_suggested);
+
+    if let Err(e) = importer.state.save() {
+        return Err(format!("Could not save state: {}", e));
     }
 
     Ok("Succesfully added path.".into())
