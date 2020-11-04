@@ -268,6 +268,16 @@ fn get_response(request: &str, importer: &mut Importer) -> Result<String, String
                     return handlers::add(arg, importer);
                 }
             }
+            "pick" => {
+                if let Some(arg) = request.next() {
+                    return handlers::pick(arg, importer);
+                }
+            }
+            "unpick" => {
+                if let Some(arg) = request.next() {
+                    return handlers::unpick(arg, importer);
+                }
+            }
             "save" => {
                 if let Some(arg) = request.next() {
                     let description =

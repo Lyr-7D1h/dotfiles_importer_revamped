@@ -8,7 +8,7 @@ use std::io;
 use std::path::Path;
 use std::{fs::File, io::BufReader};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Difference {
     pub kind: String,
     pub path: String,
@@ -35,6 +35,7 @@ impl Difference {
 #[derive(Serialize, Deserialize)]
 pub struct State {
     pub initialized: bool,
+    pub picked_differences: Vec<Difference>,
     pub differences: Vec<Difference>,
     pub mapped_files: Vec<String>,
     pub suggested_files: Vec<String>,
@@ -56,6 +57,7 @@ impl State {
                 File::create(STATE_PATH)?;
                 let default_state = State {
                     initialized: false,
+                    picked_differences: vec![],
                     differences: vec![],
                     mapped_files: vec![],
                     suggested_files: vec![],

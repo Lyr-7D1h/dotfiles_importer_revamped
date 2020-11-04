@@ -15,10 +15,13 @@ use crate::Importer;
 impl Importer {
     /// Synchronize and notify if new changes and save to state
     pub fn sync_and_notify(&mut self) -> Result<(), Box<dyn Error>> {
-        let changes = self.sync()?;
+        let has_changes = self.sync()?;
 
-        if changes.len() > self.state.differences.len() {
-            let mut body = format!("You have {} changed files.", changes.len());
+        if has_changes {
+            let mut body = format!(
+                "You have {} changed files.",
+                self.state.differences.len() + self.state.picked_differences.len()
+            );
             if self.state.suggested_files.len() > 0 {
                 body.push_str(&format!(
                     "\nAnd {} suggested files.",
@@ -28,17 +31,13 @@ impl Importer {
             self.notify(&body)?;
         }
 
-        // Always update changes
-        self.state.differences = changes;
-        self.state.save()?;
-
         Ok(())
     }
 
     /// Remove files if link removed
     /// Update Suggested files
-    /// Return file status for changes
-    pub fn sync(&mut self) -> Result<Vec<Difference>, Box<dyn Error>> {
+    /// Return true if there are new changed files
+    pub fn sync(&mut self) -> Result<bool, Box<dyn Error>> {
         info!("Synchronizing..");
         self.link_removed()?;
         repository_update(&self.config.repository, &self.config.private_key_path)?;
@@ -47,12 +46,36 @@ impl Importer {
 
         let statuses = self.config.repository.statuses(None)?;
 
-        let differences = statuses
-            .iter()
-            .map(|status| Difference::from_status_entry(status))
-            .collect();
+        // only add
+        let mut differences = vec![];
+        let mut picked_differences = vec![];
+        let mut new_differences = vec![];
+        'outer: for status in statuses.iter() {
+            if let Some(path) = status.path() {
+                for diff in &self.state.differences {
+                    if diff.path == path {
+                        differences.push(diff.clone());
+                        continue 'outer;
+                    }
+                }
+                for diff in &self.state.picked_differences {
+                    if diff.path == path {
+                        picked_differences.push(diff.clone());
+                        continue 'outer;
+                    }
+                }
+                new_differences.push(Difference::from_status_entry(status))
+            }
+        }
+        let has_changes = new_differences.len() > 0;
+        if has_changes {
+            self.state.differences.append(&mut new_differences);
+        }
+        self.state.differences = differences;
+        self.state.picked_differences = picked_differences;
+        self.state.save()?;
 
-        Ok(differences)
+        Ok(has_changes)
     }
 
     /// if symlink removed -> remove file from repository

@@ -66,6 +66,8 @@ fn main() {
                 path.canonicalize().unwrap().to_str().unwrap()
             ));
         }
+        Args::Pick(regex) => write(&format!("pick {}", regex)),
+        Args::Unpick(regex) => write(&format!("unpick {}", regex)),
         Args::Save(description) => {
             if let Some(description) = description {
                 write(&format!("save {}", description));

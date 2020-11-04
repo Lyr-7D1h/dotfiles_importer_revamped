@@ -21,6 +21,8 @@ pub enum Args {
     Ignore(Ignore),
     Restore(Regex),
     Add(PathBuf),
+    Pick(Regex),
+    Unpick(Regex),
     Save(Option<String>),
 }
 
@@ -106,6 +108,18 @@ impl Args {
                         return Ok(Args::Add(path));
                     }
                 }
+                "pick" => {
+                    if let Some(arg) = args.next() {
+                        let regex = Regex::new(arg)?;
+                        return Ok(Args::Pick(regex));
+                    }
+                }
+                "unpick" => {
+                    if let Some(arg) = args.next() {
+                        let regex = Regex::new(arg)?;
+                        return Ok(Args::Unpick(regex));
+                    }
+                }
                 "save" => {
                     let description = args
                         .map(|a| a.to_owned())
@@ -138,6 +152,8 @@ Commands:
     ignore [all|<regex>]                        Ignore from suggested files
     restore <regex>                             Restore a removed or changed file
     add <path>                                  Add a file or directory to the repository
+    pick <regex>                                Pick a files from Changed files to save instead of all
+    unpick <regex>                              Unpick file from Picked Files if picked files is empty will save all
     save [<message>]                            Save current settings and give an optional description of changed files
 "#
             .into());

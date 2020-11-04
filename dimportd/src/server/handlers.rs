@@ -1,6 +1,6 @@
-use crate::util::repository_commit;
 use crate::util::repository_fetch;
 use crate::util::{differences_to_string, repository_push};
+use crate::util::{repository_commit, repository_commit_all};
 use std::{fs, path::Path};
 
 use git2::build::CheckoutBuilder;
@@ -11,17 +11,20 @@ use crate::Importer;
 
 /// Sync and return status
 pub fn status(importer: &mut Importer) -> Result<String, String> {
-    let changes = match importer.sync() {
-        Ok(changes) => changes,
-        Err(e) => return Err(format!("Could not sync: {}", e)),
+    if let Err(e) = importer.sync() {
+        return Err(format!("Could not sync: {}", e));
     };
 
-    importer.state.differences = changes;
-    if let Err(e) = importer.state.save() {
-        return Err(format!("Could not save changes"));
-    }
-
     let mut result = String::new();
+
+    if importer.state.picked_differences.len() > 0 {
+        result.push_str("Picked Files\n");
+        result.push_str(&differences_to_string(&importer.state.picked_differences));
+        if importer.state.differences.len() > 0 || importer.state.suggested_files.len() > 0 {
+            result.push_str("\n");
+            result.push_str("\n");
+        }
+    }
 
     if importer.state.differences.len() > 0 {
         result.push_str("Changed Files\n");
@@ -254,6 +257,46 @@ pub fn add(absolute_src_path_string: &str, importer: &mut Importer) -> Result<St
 
     Ok("Succesfully added path.".into())
 }
+pub fn pick(regex: &str, importer: &mut Importer) -> Result<String, String> {
+    let regex = Regex::new(regex).unwrap();
+    let mut old_changed = vec![];
+    importer.state.differences.retain(|changed_file| {
+        if regex.is_match(&changed_file.path) {
+            old_changed.push(changed_file.clone());
+            false
+        } else {
+            true
+        }
+    });
+    let len = old_changed.len();
+    importer.state.picked_differences.append(&mut old_changed);
+
+    if let Err(e) = importer.state.save() {
+        return Err(format!("Could not save state: {}", e));
+    }
+
+    Ok(format!("Picked {} files.", len))
+}
+pub fn unpick(regex: &str, importer: &mut Importer) -> Result<String, String> {
+    let regex = Regex::new(regex).unwrap();
+    let mut old_picked = vec![];
+    importer.state.picked_differences.retain(|picked_file| {
+        if regex.is_match(&picked_file.path) {
+            old_picked.push(picked_file.clone());
+            false
+        } else {
+            true
+        }
+    });
+    let len = old_picked.len();
+    importer.state.differences.append(&mut old_picked);
+
+    if let Err(e) = importer.state.save() {
+        return Err(format!("Could not save state: {}", e));
+    }
+
+    Ok(format!("Unpicked {} files.", len))
+}
 
 pub fn save(description: Option<&str>, importer: &Importer) -> Result<String, String> {
     let description = match description {
@@ -261,8 +304,20 @@ pub fn save(description: Option<&str>, importer: &Importer) -> Result<String, St
         None => differences_to_string(&importer.state.differences),
     };
 
-    if let Err(e) = repository_commit(&importer.config.repository, &description) {
-        return Err(format!("Could not commit files: {}", e));
+    if importer.state.picked_differences.len() > 0 {
+        let paths = importer
+            .state
+            .picked_differences
+            .iter()
+            .map(|dif| Path::new(&dif.path))
+            .collect();
+        if let Err(e) = repository_commit(paths, &importer.config.repository, &description) {
+            return Err(format!("Could not commit files: {}", e));
+        }
+    } else {
+        if let Err(e) = repository_commit_all(&importer.config.repository, &description) {
+            return Err(format!("Could not commit files: {}", e));
+        }
     }
 
     info!("Commited");

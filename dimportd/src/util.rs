@@ -105,9 +105,35 @@ pub fn repository_push(
     Ok(())
 }
 pub fn repository_commit(
+    paths: Vec<&Path>,
     repository: &git2::Repository,
     description: &str,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), git2::Error> {
+    let signature = get_signature()?;
+    let mut index = repository.index()?;
+    for path in paths.iter() {
+        index.add_path(path)?;
+    }
+    index.write()?;
+    let oid = index.write_tree()?;
+    let parent_commit = repository.head()?.peel_to_commit()?;
+    let tree = repository.find_tree(oid)?;
+
+    repository.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        description,
+        &tree,
+        &[&parent_commit],
+    )?;
+
+    Ok(())
+}
+pub fn repository_commit_all(
+    repository: &git2::Repository,
+    description: &str,
+) -> Result<(), git2::Error> {
     let signature = get_signature()?;
     let mut index = repository.index()?;
     index.add_all(["."].iter(), git2::IndexAddOption::DEFAULT, None)?;
