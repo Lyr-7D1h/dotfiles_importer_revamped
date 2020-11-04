@@ -127,6 +127,16 @@ pub fn repository_commit(
 
     Ok(())
 }
+pub fn repository_update(
+    repository: &Repository,
+    private_key_path: &Path,
+) -> Result<(), git2::Error> {
+    let mut remote = repository.find_remote("origin")?;
+    let mut options = git2::FetchOptions::new();
+    options.remote_callbacks(get_callbacks(private_key_path));
+    remote.fetch(&["master"], Some(&mut options), None)?;
+    Ok(())
+}
 pub fn repository_fetch(
     url: &str,
     path: &Path,
@@ -155,11 +165,16 @@ pub fn repository_fetch(
             return Ok(repo);
         }
     };
+    // add origin if does not exist
+    if let Err(_) = repo.find_remote("origin") {
+        repo.remote("origin", url)?;
+    }
     // if current repo differs remove and fetch again
     if repo.find_remote("origin")?.url().unwrap() != url {
         fs::remove_dir_all(&path)?;
         return repository_fetch(url, path, private_key_path);
     }
+
     Ok(repo)
 }
 

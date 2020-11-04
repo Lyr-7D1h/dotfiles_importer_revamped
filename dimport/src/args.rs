@@ -135,7 +135,7 @@ Commands:
     config                                      Return current configuration
     sync                                        Synchronize files right now (otherwise being run every ~5 min)
     set [repo|home|private_key] [<url>|<path>]  Configure the dotfiles importer
-    ignore [all|<regex>]                        If you want to ignore all suggested files or only by regex
+    ignore [all|<regex>]                        Ignore from suggested files
     restore <regex>                             Restore a removed or changed file
     add <path>                                  Add a file or directory to the repository
     save [<message>]                            Save current settings and give an optional description of changed files

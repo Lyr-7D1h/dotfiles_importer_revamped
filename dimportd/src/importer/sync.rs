@@ -1,6 +1,10 @@
-use crate::{importer::state::Difference, util::find_equal_dir, REPOSITORY_DIR};
-use std::error::Error;
+use crate::{
+    importer::state::Difference,
+    util::{find_equal_dir, repository_update},
+    REPOSITORY_DIR,
+};
 use std::path::Path;
+use std::{error::Error, os::unix::fs::symlink};
 use std::{fs, io};
 
 use log::{debug, info};
@@ -37,7 +41,9 @@ impl Importer {
     pub fn sync(&mut self) -> Result<Vec<Difference>, Box<dyn Error>> {
         info!("Synchronizing..");
         self.link_removed()?;
+        repository_update(&self.config.repository, &self.config.private_key_path)?;
         self.update_suggested()?;
+        self.link_newly_added()?;
 
         let statuses = self.config.repository.statuses(None)?;
 
@@ -70,6 +76,23 @@ impl Importer {
         find_equal_files(src, dest, Path::new(""), &self.config.ignore_files, &mut op)
     }
 
+    /// Link files that are newly added to the repository
+    fn link_newly_added(&self) -> Result<(), io::Error> {
+        let src = self.config.repository.workdir().unwrap();
+        let dest = &self.config.home_path;
+
+        let mut op = |from: &Path, to: &Path, _cur: &Path| {
+            if !to.exists() {
+                info!("New file found {:?}. Linking to {:?}", from, to);
+                symlink(from, to)?;
+            }
+            Ok(())
+        };
+
+        find_equal_files(src, dest, Path::new(""), &self.config.ignore_files, &mut op)
+    }
+
+    /// If destination directory has new files add to suggested
     fn update_suggested(&mut self) -> Result<(), io::Error> {
         let home = self.config.home_path.clone();
 
@@ -89,7 +112,6 @@ impl Importer {
             Ok(())
         };
 
-        // find_all_files_symlink(&home, &mut op)?;
         find_equal_dir(Path::new(REPOSITORY_DIR), &home, Path::new(""), &mut op)?;
         self.state.save()?;
         Ok(())
