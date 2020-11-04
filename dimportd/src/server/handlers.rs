@@ -9,7 +9,18 @@ use regex::Regex;
 
 use crate::Importer;
 
-pub fn status(importer: &Importer) -> Result<String, String> {
+/// Sync and return status
+pub fn status(importer: &mut Importer) -> Result<String, String> {
+    let changes = match importer.sync() {
+        Ok(changes) => changes,
+        Err(e) => return Err(format!("Could not sync: {}", e)),
+    };
+
+    importer.state.differences = changes;
+    if let Err(e) = importer.state.save() {
+        return Err(format!("Could not save changes"));
+    }
+
     let mut result = String::new();
 
     if importer.state.differences.len() > 0 {
