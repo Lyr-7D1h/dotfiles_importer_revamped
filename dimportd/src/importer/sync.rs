@@ -125,12 +125,14 @@ impl Importer {
             for entry in fs::read_dir(dir)? {
                 let path = entry?.path();
                 if path.is_file() {
-                    let path = path.to_str().unwrap().to_string();
-                    if !self.state.suggested_files.contains(&path)
-                        && !self.state.mapped_files.contains(&path)
-                    {
-                        debug!("Adding {} to Suggested Files", path);
-                        self.state.suggested_files.push(path);
+                    if let Some(path) = path.to_str() {
+                        let path = path.to_owned();
+                        if !self.state.suggested_files.contains(&path)
+                            && !self.state.mapped_files.contains(&path)
+                        {
+                            debug!("Adding {} to Suggested Files", path);
+                            self.state.suggested_files.push(path);
+                        }
                     }
                 }
             }

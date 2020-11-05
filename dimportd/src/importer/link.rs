@@ -119,9 +119,10 @@ impl Importer {
             for entry in fs::read_dir(dir)? {
                 let path = entry?.path();
                 if path.is_file() {
-                    let path = path.to_str().unwrap().to_string();
-                    debug!("Adding {} to Mapped Files", path);
-                    self.state.mapped_files.push(path);
+                    if let Some(path) = path.to_str() {
+                        debug!("Adding {} to Mapped Files", path);
+                        self.state.mapped_files.push(path.to_owned());
+                    }
                 }
             }
             Ok(())
