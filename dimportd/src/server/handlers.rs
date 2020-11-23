@@ -228,6 +228,16 @@ pub fn add(absolute_src_path_string: &str, importer: &mut Importer) -> Result<St
     if !absolute_src_path.exists() {
         return Err(format!("Could not find {:?}", absolute_src_path));
     }
+    // If parent directory does not exist create
+    let repository_path_parent = repository_path.parent().unwrap();
+    if !repository_path_parent.exists() {
+        if let Err(e) = fs::create_dir_all(repository_path_parent) {
+            return Err(format!(
+                "Could not create parent directory for repository: {}",
+                e
+            ));
+        }
+    }
     if let Err(e) = fs::copy(&absolute_src_path, &repository_path) {
         return Err(format!("Could not copy file: {}", e));
     }
